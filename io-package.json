@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "news": {
+      "0.2.1": {
+        "en": "Admin: fixed jsonConfig warning (i18n)",
+        "de": "Admin: Warnung zur jsonConfig behoben (i18n)"
+      },
       "0.2.0": {
         "en": "Own web server for the app (no web/simple-api adapter needed), optional password, simple-api selectable",
         "de": "Eigener Webserver für die App (web- und simple-api-Adapter nicht mehr nötig), optionales Passwort, simple-api wählbar"

@@ -96,6 +96,9 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ## Changelog
 
+### 0.2.1 (2026-10-25)
+- Admin: Warnung „invalid jsonConfig … i18n“ behoben
+
 ### 0.2.0 (2026-10-25)
 - Eigener Webserver für die App: web- und simple-api-Adapter werden nicht mehr benötigt
 - Optionales App-Passwort

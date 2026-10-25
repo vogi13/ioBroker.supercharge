@@ -1,6 +1,6 @@
 {
   "name": "iobroker.supercharge",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Akkuschonendes Laden von 1 bis 4 E-Bikes über schaltbare Steckdosen mit Leistungsmessung",
   "author": {
     "name": "Andreas Voigtländer"

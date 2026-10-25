@@ -1,0 +1,45 @@
+{
+  "name": "iobroker.supercharge",
+  "version": "0.2.0",
+  "description": "Akkuschonendes Laden von 1 bis 4 E-Bikes über schaltbare Steckdosen mit Leistungsmessung",
+  "author": {
+    "name": "Andreas Voigtländer"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ioBroker",
+    "e-bike",
+    "akku",
+    "laden",
+    "shelly",
+    "soc"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vogi13/ioBroker.supercharge"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.2.3"
+  },
+  "devDependencies": {
+    "@iobroker/testing": "^5.3.0",
+    "mocha": "^10.8.2"
+  },
+  "main": "main.js",
+  "files": [
+    "admin/",
+    "lib/",
+    "www/",
+    "io-package.json",
+    "main.js",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "mocha test/sim.test.js test/webserver.test.js",
+    "test:package": "mocha test/package.js",
+    "test:integration": "mocha test/integration.js --exit"
+  }
+}

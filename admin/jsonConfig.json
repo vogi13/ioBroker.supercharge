@@ -1,0 +1,449 @@
+{
+  "type": "tabs",
+  "items": {
+    "tabRaeder": {
+      "type": "panel",
+      "label": "Räder",
+      "items": {
+        "introRaeder": {
+          "type": "staticText",
+          "text": "1 bis 4 Räder. Jedes Rad braucht eine schaltbare Steckdose mit Leistungsmessung (z. B. Shelly Plug S, 1PM, 2PM). Die Nummer bestimmt den Ordner (rad1 … rad4) – wird ein Rad umbenannt, bleiben Ladekurve und Statistik erhalten.",
+          "sm": 12
+        },
+        "raeder": {
+          "type": "table",
+          "sm": 12,
+          "uniqueColumns": [
+            "slot",
+            "name"
+          ],
+          "items": [
+            {
+              "type": "select",
+              "attr": "slot",
+              "title": "Nr.",
+              "width": "8%",
+              "default": "1",
+              "options": [
+                {
+                  "label": "1",
+                  "value": "1"
+                },
+                {
+                  "label": "2",
+                  "value": "2"
+                },
+                {
+                  "label": "3",
+                  "value": "3"
+                },
+                {
+                  "label": "4",
+                  "value": "4"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "attr": "name",
+              "title": "Name",
+              "width": "16%",
+              "default": ""
+            },
+            {
+              "type": "select",
+              "attr": "farbe",
+              "title": "Farbe",
+              "width": "12%",
+              "default": "blau",
+              "options": [
+                {
+                  "label": "Blau",
+                  "value": "blau"
+                },
+                {
+                  "label": "Orange",
+                  "value": "orange"
+                },
+                {
+                  "label": "Grün",
+                  "value": "gruen"
+                },
+                {
+                  "label": "Lila",
+                  "value": "lila"
+                }
+              ]
+            },
+            {
+              "type": "objectId",
+              "attr": "schalter",
+              "title": "Schalter (Ein/Aus)",
+              "width": "32%",
+              "default": ""
+            },
+            {
+              "type": "objectId",
+              "attr": "leistung",
+              "title": "Leistung (W)",
+              "width": "32%",
+              "default": ""
+            }
+          ]
+        },
+        "hdrImport": {
+          "type": "header",
+          "text": "Ladekurven aus dem Skript übernehmen",
+          "size": 5,
+          "newLine": true,
+          "sm": 12
+        },
+        "introImport": {
+          "type": "staticText",
+          "text": "Für den Umstieg vom Supercharge-Skript: Ordner der Skript-Datenpunkte eintragen, Einstellungen speichern, dann den Knopf drücken. Übernommen wird je Rad die Kurve <Ordner>.<Name>.Kurve (bzw. <Ordner>.Kurve) und die Statistik.",
+          "sm": 12
+        },
+        "importPrefix": {
+          "type": "text",
+          "label": "Datenpunkt-Ordner des Skripts",
+          "sm": 12,
+          "md": 6,
+          "newLine": true
+        },
+        "importBtn": {
+          "type": "sendTo",
+          "command": "importKurven",
+          "label": "Ladekurven übernehmen",
+          "jsonData": "{\"prefix\":\"${data.importPrefix}\"}",
+          "showProcess": true,
+          "variant": "outlined",
+          "sm": 12,
+          "md": 4
+        }
+      }
+    },
+    "tabLaden": {
+      "type": "panel",
+      "label": "Laden",
+      "items": {
+        "hdrGeraet": {
+          "type": "header",
+          "text": "Ladegerät und Erkennung",
+          "size": 5,
+          "sm": 12
+        },
+        "minLeistung": {
+          "type": "number",
+          "label": "Abschalt-Schwelle (W)",
+          "help": "Darunter gilt das Ladegerät als fertig",
+          "min": 0,
+          "max": 50,
+          "step": 0.5,
+          "sm": 12,
+          "md": 4,
+          "newLine": true
+        },
+        "maxLadezeitH": {
+          "type": "number",
+          "label": "Sicherheitsabschaltung (h)",
+          "help": "Höchste reine Ladezeit pro Vorgang",
+          "min": 1,
+          "max": 24,
+          "sm": 12,
+          "md": 4
+        },
+        "sitzungMaxMin": {
+          "type": "number",
+          "label": "Fortsetzen nach Neustart bis (min)",
+          "help": "War ioBroker länger aus, wird nicht fortgesetzt",
+          "min": 5,
+          "max": 1440,
+          "sm": 12,
+          "md": 4
+        },
+        "hdrZeit": {
+          "type": "header",
+          "text": "100 % mit Fertig-Uhrzeit",
+          "size": 5,
+          "sm": 12,
+          "newLine": true
+        },
+        "parkSoc": {
+          "type": "number",
+          "label": "Pause bei (%)",
+          "help": "Bis hier wird sofort geladen, dann gewartet",
+          "min": 50,
+          "max": 95,
+          "sm": 12,
+          "md": 4,
+          "newLine": true
+        },
+        "pufferMin": {
+          "type": "number",
+          "label": "Voll vor der Uhrzeit (min)",
+          "help": "Puffer, falls die Schätzung knapp ist",
+          "min": 0,
+          "max": 180,
+          "sm": 12,
+          "md": 4
+        },
+        "minPauseMin": {
+          "type": "number",
+          "label": "Kürzeste sinnvolle Pause (min)",
+          "help": "Kürzere Pausen: einfach durchladen",
+          "min": 0,
+          "max": 180,
+          "sm": 12,
+          "md": 4
+        },
+        "hdrZiele": {
+          "type": "header",
+          "text": "Ladeziele in der App",
+          "size": 5,
+          "sm": 12,
+          "newLine": true
+        },
+        "zielLagerung": {
+          "type": "number",
+          "label": "Lagerung (%)",
+          "min": 20,
+          "max": 95,
+          "sm": 12,
+          "md": 4,
+          "newLine": true
+        },
+        "zielAlltag": {
+          "type": "number",
+          "label": "Alltag (%) – Standard",
+          "min": 20,
+          "max": 99,
+          "sm": 12,
+          "md": 4
+        },
+        "zielTour": {
+          "type": "staticText",
+          "text": "Tour: immer 100 %",
+          "sm": 12,
+          "md": 4
+        }
+      }
+    },
+    "tabBackup": {
+      "type": "panel",
+      "label": "Backup",
+      "items": {
+        "introBackup": {
+          "type": "staticText",
+          "text": "Wird ioBroker regelmäßig für ein Backup heruntergefahren, plant Supercharge eine Ladung mit Fertig-Uhrzeit so, dass sie nicht in dieses Zeitfenster fällt. Ein laufender Ladevorgang wird nach dem Neustart in jedem Fall fortgesetzt.",
+          "sm": 12
+        },
+        "backupAktiv": {
+          "type": "checkbox",
+          "label": "Backup-Zeitfenster beim Planen aussparen",
+          "sm": 12,
+          "newLine": true
+        },
+        "backupStart": {
+          "type": "text",
+          "label": "Beginn des Backups (HH:MM)",
+          "placeholder": "04:30",
+          "validator": "/^([01]?\\d|2[0-3]):[0-5]\\d$/.test(data.backupStart)",
+          "validatorErrorText": "Bitte als HH:MM eingeben, z. B. 04:30",
+          "validatorNoSaveOnError": true,
+          "disabled": "!data.backupAktiv",
+          "sm": 6,
+          "md": 3,
+          "newLine": true
+        },
+        "backupDauer": {
+          "type": "number",
+          "label": "Dauer (min)",
+          "min": 0,
+          "max": 240,
+          "disabled": "!data.backupAktiv",
+          "sm": 6,
+          "md": 3
+        },
+        "backupVorher": {
+          "type": "number",
+          "label": "Puffer davor (min)",
+          "min": 0,
+          "max": 120,
+          "disabled": "!data.backupAktiv",
+          "sm": 6,
+          "md": 3
+        },
+        "backupNachher": {
+          "type": "number",
+          "label": "Puffer danach (min)",
+          "min": 0,
+          "max": 120,
+          "disabled": "!data.backupAktiv",
+          "sm": 6,
+          "md": 3
+        },
+        "hdrTage": {
+          "type": "staticText",
+          "text": "An diesen Tagen:",
+          "sm": 12,
+          "newLine": true
+        },
+        "backupMo": {
+          "type": "checkbox",
+          "label": "Mo",
+          "disabled": "!data.backupAktiv",
+          "xs": 3,
+          "sm": 1,
+          "newLine": true
+        },
+        "backupDi": {
+          "type": "checkbox",
+          "label": "Di",
+          "disabled": "!data.backupAktiv",
+          "xs": 3,
+          "sm": 1
+        },
+        "backupMi": {
+          "type": "checkbox",
+          "label": "Mi",
+          "disabled": "!data.backupAktiv",
+          "xs": 3,
+          "sm": 1
+        },
+        "backupDo": {
+          "type": "checkbox",
+          "label": "Do",
+          "disabled": "!data.backupAktiv",
+          "xs": 3,
+          "sm": 1
+        },
+        "backupFr": {
+          "type": "checkbox",
+          "label": "Fr",
+          "disabled": "!data.backupAktiv",
+          "xs": 3,
+          "sm": 1
+        },
+        "backupSa": {
+          "type": "checkbox",
+          "label": "Sa",
+          "disabled": "!data.backupAktiv",
+          "xs": 3,
+          "sm": 1
+        },
+        "backupSo": {
+          "type": "checkbox",
+          "label": "So",
+          "disabled": "!data.backupAktiv",
+          "xs": 3,
+          "sm": 1
+        }
+      }
+    },
+    "tabApp": {
+      "type": "panel",
+      "label": "App",
+      "items": {
+        "hdrWeb": {
+          "type": "header",
+          "text": "Eigener Webserver",
+          "size": 5,
+          "sm": 12
+        },
+        "introWeb": {
+          "type": "staticText",
+          "text": "Supercharge liefert die App selbst aus – dafür werden weder der web-Adapter noch simple-api benötigt. Aufruf im Browser: http://<ioBroker-IP>:<Port>/",
+          "sm": 12
+        },
+        "webAktiv": {
+          "type": "checkbox",
+          "label": "Eigenen Webserver starten",
+          "sm": 12,
+          "newLine": true
+        },
+        "bind": {
+          "type": "ip",
+          "label": "IP-Adresse",
+          "listenOnAllPorts": true,
+          "onlyIp4": false,
+          "disabled": "!data.webAktiv",
+          "sm": 12,
+          "md": 4,
+          "newLine": true
+        },
+        "port": {
+          "type": "port",
+          "label": "Port",
+          "min": 1,
+          "max": 65535,
+          "disabled": "!data.webAktiv",
+          "sm": 6,
+          "md": 2
+        },
+        "webPasswort": {
+          "type": "password",
+          "label": "Passwort für die App (optional)",
+          "help": "Leer = ohne Passwort. Wird in der App unter Einstellungen eingegeben.",
+          "disabled": "!data.webAktiv",
+          "sm": 6,
+          "md": 4
+        },
+        "hdrQuelle": {
+          "type": "header",
+          "text": "Datenquelle der App",
+          "size": 5,
+          "sm": 12,
+          "newLine": true
+        },
+        "appQuelle": {
+          "type": "select",
+          "label": "Die App holt ihre Daten über",
+          "options": [
+            {
+              "label": "den eigenen Webserver (empfohlen)",
+              "value": "eigen"
+            },
+            {
+              "label": "simple-api",
+              "value": "simpleapi"
+            }
+          ],
+          "sm": 12,
+          "md": 6,
+          "newLine": true
+        },
+        "infoSimple": {
+          "type": "staticText",
+          "text": "Mit simple-api liest und schreibt die App die Datenpunkte über die gewählte simple-api-Instanz. Nach einem Update von Supercharge muss simple-api dann neu gestartet werden. Ist der eigene Webserver aus, wird die App über den web-Adapter aufgerufen (…:8082/supercharge/index.html) und nutzt immer simple-api.",
+          "hidden": "data.appQuelle !== 'simpleapi' && data.webAktiv !== false",
+          "sm": 12,
+          "newLine": true
+        },
+        "simpleApiInstanz": {
+          "type": "instance",
+          "label": "simple-api-Instanz",
+          "adapter": "simple-api",
+          "hidden": "data.appQuelle !== 'simpleapi' && data.webAktiv !== false",
+          "sm": 12,
+          "md": 4,
+          "newLine": true
+        },
+        "simpleApiUrl": {
+          "type": "text",
+          "label": "Adresse (optional)",
+          "placeholder": "automatisch, z. B. http://192.168.2.4:8087",
+          "help": "Nur nötig, wenn simple-api auf einem anderen Rechner läuft oder hinter einem Proxy erreichbar ist.",
+          "hidden": "data.appQuelle !== 'simpleapi' && data.webAktiv !== false",
+          "sm": 12,
+          "md": 6
+        },
+        "hinweisAuth": {
+          "type": "staticText",
+          "text": "Benutzer und Passwort für simple-api (falls dort eine Anmeldung eingeschaltet ist) werden in der App unter Einstellungen eingegeben.",
+          "hidden": "data.appQuelle !== 'simpleapi' && data.webAktiv !== false",
+          "sm": 12
+        }
+      }
+    }
+  }
+}

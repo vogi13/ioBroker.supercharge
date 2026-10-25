@@ -1,0 +1,143 @@
+{
+  "common": {
+    "name": "supercharge",
+    "version": "0.2.0",
+    "news": {
+      "0.2.0": {
+        "en": "Own web server for the app (no web/simple-api adapter needed), optional password, simple-api selectable",
+        "de": "Eigener Webserver für die App (web- und simple-api-Adapter nicht mehr nötig), optionales Passwort, simple-api wählbar"
+      },
+      "0.1.0": {
+        "en": "First version: 1 to 4 bikes, charge curve per bike, full-by time, backup window, web app",
+        "de": "Erste Version: 1 bis 4 Räder, Ladekurve je Rad, Fertig-Uhrzeit, Backup-Zeitfenster, Web-App"
+      }
+    },
+    "titleLang": {
+      "en": "Supercharge – gentle e-bike charging",
+      "de": "Supercharge – akkuschonendes E-Bike-Laden"
+    },
+    "desc": {
+      "en": "Charges up to 4 e-bikes to a target state of charge via smart plugs with power metering. The state of charge is estimated from the recorded charge curve.",
+      "de": "Lädt bis zu 4 E-Bikes über schaltbare Steckdosen mit Leistungsmessung bis zu einem Ziel-Ladestand. Der Ladestand wird aus der aufgezeichneten Ladekurve geschätzt."
+    },
+    "authors": [
+      "Andreas Voigtländer"
+    ],
+    "keywords": [
+      "e-bike",
+      "akku",
+      "laden",
+      "shelly",
+      "soc",
+      "battery"
+    ],
+    "licenseInformation": {
+      "license": "MIT",
+      "type": "free"
+    },
+    "platform": "Javascript/Node.js",
+    "icon": "supercharge.png",
+    "enabled": true,
+    "readme": "https://github.com/vogi13/ioBroker.supercharge/blob/main/README.md",
+    "extIcon": "https://raw.githubusercontent.com/vogi13/ioBroker.supercharge/main/admin/supercharge.png",
+    "loglevel": "info",
+    "tier": 3,
+    "mode": "daemon",
+    "messagebox": true,
+    "type": "energy",
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "push",
+    "adminUI": {
+      "config": "json"
+    },
+    "localLinks": {
+      "_default": {
+        "link": "http://%ip%:%port%/",
+        "name": {
+          "en": "Supercharge app",
+          "de": "Supercharge-App"
+        }
+      }
+    },
+    "welcomeScreen": [
+      {
+        "link": "supercharge/index.html",
+        "name": "Supercharge",
+        "img": "supercharge/icon.png",
+        "color": "#18201a"
+      }
+    ],
+    "dependencies": [
+      {
+        "js-controller": ">=5.0.19"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=6.17.0"
+      }
+    ]
+  },
+  "native": {
+    "raeder": [],
+    "minLeistung": 3,
+    "maxLadezeitH": 12,
+    "sitzungMaxMin": 60,
+    "parkSoc": 80,
+    "pufferMin": 20,
+    "minPauseMin": 15,
+    "zielLagerung": 60,
+    "zielAlltag": 80,
+    "backupAktiv": false,
+    "backupStart": "04:30",
+    "backupDauer": 10,
+    "backupVorher": 5,
+    "backupNachher": 10,
+    "backupMo": true,
+    "backupDi": true,
+    "backupMi": true,
+    "backupDo": true,
+    "backupFr": true,
+    "backupSa": true,
+    "backupSo": true,
+    "importPrefix": "0_userdata.0.SuperchargeDuo",
+    "webAktiv": true,
+    "bind": "0.0.0.0",
+    "port": 8095,
+    "webPasswort": "",
+    "appQuelle": "eigen",
+    "simpleApiInstanz": "simple-api.0",
+    "simpleApiUrl": ""
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "role": "indicator.connected",
+        "name": "Adapter bereit",
+        "type": "boolean",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ],
+  "encryptedNative": [
+    "webPasswort"
+  ],
+  "protectedNative": [
+    "webPasswort"
+  ]
+}

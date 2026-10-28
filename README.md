@@ -112,6 +112,9 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ## Changelog
 
+### 0.3.1 (2026-10-28)
+- App: Temperatur rechts neben dem Verbindungsstatus
+
 ### 0.3.0 (2026-10-28)
 - Sommer- und Winterkurve je Rad, Temperatursensor mit Umschalttemperatur und Gültigkeitsdauer
 - App: Temperatur im Kopf, beide Kurven in den Einstellungen und in den Details (Kurvenart nur in der erweiterten Ansicht)

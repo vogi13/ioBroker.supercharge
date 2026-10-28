@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "news": {
+      "0.3.1": {
+        "en": "App: temperature shown on the right next to the connection status",
+        "de": "App: Temperatur rechts neben dem Verbindungsstatus"
+      },
       "0.3.0": {
         "en": "Summer and winter charge curve per bike, temperature sensor with switching threshold",
         "de": "Sommer- und Winterkurve je Rad, Temperatursensor mit Umschaltschwelle"

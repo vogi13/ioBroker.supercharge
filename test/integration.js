@@ -23,6 +23,7 @@ tests.integration(path.join(__dirname, '..'), {
                 await st('0_userdata.0.plug2.Switch', 'boolean', false);
                 await st('0_userdata.0.plug2.Power', 'number', 0);
                 await st('0_userdata.0.alt.Jutta.Kurve', 'string', KURVE);
+                await st('0_userdata.0.garage.temp', 'number', 7.5);
                 await st('0_userdata.0.alt.Jutta.StartSOCAufz', 'number', 12);
                 await st('0_userdata.0.alt.Statistik', 'string', JSON.stringify([{ rad: 'Jutta', datum: '2026-10-20 18:00', modus: 'laden', startSOC: 30, endSOC: 80, minuten: 90, wh: 200, grund: 'Ziel 80 % erreicht' }]));
                 await harness.changeAdapterConfig('supercharge', {
@@ -31,7 +32,7 @@ tests.integration(path.join(__dirname, '..'), {
                             { slot: '1', name: 'Jutta', farbe: 'blau', schalter: '0_userdata.0.plug1.Switch', leistung: '0_userdata.0.plug1.Power' },
                             { slot: '3', name: 'Werner', farbe: 'orange', schalter: '0_userdata.0.plug2.Switch', leistung: '0_userdata.0.plug2.Power' },
                         ],
-                        backupAktiv: true, backupStart: '03:15', backupDauer: 20, webAktiv: true, port: 18095,
+                        backupAktiv: true, backupStart: '03:15', backupDauer: 20, webAktiv: true, port: 18095, tempDp: '0_userdata.0.garage.temp', tempSchwelle: 10,
                     },
                 });
                 await harness.startAdapterAndWait();
@@ -53,6 +54,16 @@ tests.integration(path.join(__dirname, '..'), {
                 assert.strictEqual(k.backup.aktiv, true);
                 assert.strictEqual(k.backup.start, '03:15');
                 assert.strictEqual(k.backup.dauer, 20);
+            });
+
+            it('übernimmt die Temperatur vom Sensor', async () => {
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.Temperatur')).val, 7.5);
+                const k = JSON.parse((await harness.states.getStateAsync('supercharge.0.info.konfig')).val);
+                assert.deepStrictEqual(k.temp, { aktiv: true, schwelle: 10 });
+                await harness.states.setStateAsync('0_userdata.0.garage.temp', { val: 14.26, ack: true });
+                await warte(800);
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.Temperatur')).val, 14.3);
+                assert.ok(await harness.objects.getObjectAsync('supercharge.0.rad1.KurveWinter'));
             });
 
             it('bestätigt Schreibzugriffe der App (ack)', async () => {
@@ -96,6 +107,8 @@ tests.integration(path.join(__dirname, '..'), {
                 const z = await (await fetch('http://127.0.0.1:18095/api/zustand')).json();
                 assert.deepStrictEqual(JSON.parse(z.konfig).raeder.map(r => r.name), ['Jutta', 'Werner']);
                 assert.ok('rad3.SOC' in z.states && !('rad1.Sitzung' in z.states));
+                assert.strictEqual(z.states.Temperatur, 14.3);
+                assert.ok('rad1.KurveWinter' in z.states && 'rad1.AufzArt' in z.states);
                 const r = await fetch('http://127.0.0.1:18095/api/set', { method: 'POST', body: JSON.stringify({ key: 'rad3.ZielSOC', value: 100 }) });
                 assert.strictEqual(r.status, 200);
                 await warte(800);

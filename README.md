@@ -15,6 +15,8 @@ from the charging power and the recorded CC/CV charge curve of each bike; the pl
 - **Ladeziel:** Lagerung (60 %), Alltag (80 %) oder Tour (100 %) – die ersten beiden Werte sind einstellbar.
 - **100 % mit Fertig-Uhrzeit:** lädt sofort bis 80 %, pausiert und lädt so rechtzeitig weiter, dass der Akku etwa 20 min vor der
   gewünschten Uhrzeit voll ist.
+- **Sommer- und Winterkurve:** Je Rad zwei Ladekurven; mit einem Temperatursensor wählt Supercharge beim Start die passende
+  (unter der Umschalttemperatur die Winterkurve). Ist nur eine Kurve vorhanden, gilt immer diese.
 - **Backup-Zeitfenster:** Wird ioBroker regelmäßig für ein Backup heruntergefahren, werden Uhrzeit, Dauer und Wochentage
   beim Planen ausgespart.
 - **Fortsetzen nach Neustart:** Laufende Ladungen und Pausen laufen nach einem Neustart von ioBroker weiter.
@@ -52,7 +54,7 @@ iobroker add supercharge
 | Reiter | Inhalt |
 |---|---|
 | Räder | 1–4 Zeilen mit Nummer, Name, Farbe, Schalter- und Leistungs-Datenpunkt. Die Nummer bestimmt den Ordner (`rad1` … `rad4`); ein Umbenennen ändert Ladekurve und Statistik nicht. |
-| Laden | Abschalt-Schwelle, Sicherheitsabschaltung, Fortsetzen nach Neustart, Pause bei … %, Puffer, kürzeste Pause, Ladeziele |
+| Laden | Temperatur-Datenpunkt (optional), Umschalten bei … °C, Gültigkeit des Messwerts; Abschalt-Schwelle, Sicherheitsabschaltung, Fortsetzen nach Neustart, Pause bei … %, Puffer, kürzeste Pause, Ladeziele |
 | Backup | Backup aussparen ein/aus, Beginn, Dauer, Puffer davor/danach, Wochentage |
 | App | eigener Webserver ein/aus, IP, Port (Standard 8095), optionales Passwort; Datenquelle der App: eigener Webserver oder simple-api (Instanz, optional Adresse) |
 
@@ -60,7 +62,18 @@ Nur wenn die App über **simple-api** läuft: nach dem ersten Start einmal die s
 Datenpunkte kennt.
 
 Vor dem ersten Laden für **jedes Rad einmal die Ladekurve aufzeichnen** (App → Zahnrad → Ladekurven): Akku möglichst leer fahren,
-Stand vom Fahrrad-Display eintragen, Aufzeichnung starten und bis zum Ende laden lassen.
+Stand vom Fahrrad-Display eintragen, „Sommerkurve“ oder „Winterkurve“ wählen, Aufzeichnung starten und bis zum Ende laden lassen.
+
+### Sommer- und Winterkurve
+
+Bei Kälte nimmt ein Akku weniger Leistung auf und die Ladeleistung fällt früher ab – mit der Sommerkurve würde Supercharge dann
+etwas zu früh abschalten (in der Simulation ca. 75 % statt 80 %). Deshalb kann jedes Rad zusätzlich eine Winterkurve haben:
+
+- Die Kurve wird **beim Start** eines Ladevorgangs gewählt und bleibt bis zum Ende gleich.
+- Beide Kurven vorhanden: Temperatur unter der Schwelle → Winterkurve, sonst Sommerkurve.
+- Nur eine Kurve vorhanden: diese gilt immer.
+- Kein Sensor oder Messwert älter als eingestellt: Sommerkurve.
+- Bisherige Kurven gelten nach dem Update als Sommerkurve.
 
 ### Umstieg vom Supercharge-Skript
 
@@ -89,12 +102,19 @@ schreiben (nur Ziel, Fertig-Uhrzeit, Modus, Startwert, Hinweis und die Knöpfe) 
 | `radN.ZielSOC`, `radN.FertigBis`, `radN.Modus` | Ziel (%), Fertig-Uhrzeit „HH:MM“ bei 100 %, `laden`/`aufzeichnen` |
 | `radN.Start`, `radN.Abbruch`, `radN.JetztVoll` | Knöpfe |
 | `radN.SOC`, `radN.Status`, `radN.Laeuft`, `radN.Phase`, `radN.RestMinuten`, `radN.Leistung` | Zustand |
-| `radN.Kurve`, `radN.StartSOCAufz` | Ladekurve und Startwert der Aufzeichnung |
+| `radN.Kurve`, `radN.KurveWinter`, `radN.KurvenInfo` | Sommer- und Winterkurve, Angaben (Datum, Startwert, Temperatur) |
+| `radN.AufzArt`, `radN.StartSOCAufz` | nächste Aufzeichnung als `sommer`/`winter`, Startwert |
+| `radN.AktiveKurve` | Kurve des aktuellen/letzten Vorgangs |
+| `Temperatur` | Temperatur vom eingestellten Sensor (leer ohne gültigen Wert) |
 | `radN.Plan`, `radN.Verlauf`, `radN.Hinweis`, `radN.Sitzung` | für App und Neustart |
 
 Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('supercharge.0.rad1.Start', true)`).
 
 ## Changelog
+
+### 0.3.0 (2026-10-28)
+- Sommer- und Winterkurve je Rad, Temperatursensor mit Umschalttemperatur und Gültigkeitsdauer
+- App: Temperatur im Kopf, beide Kurven in den Einstellungen und in den Details (Kurvenart nur in der erweiterten Ansicht)
 
 ### 0.2.1 (2026-10-25)
 - Admin: Warnung „invalid jsonConfig … i18n“ behoben

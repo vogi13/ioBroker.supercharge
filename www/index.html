@@ -191,6 +191,11 @@ input[type=range]{width:100%;height:28px}
   body.einfach.kompakt .schips .chip{min-height:40px}
   body.einfach.kompakt .btn{min-height:44px}
 }
+.tchip{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;padding:4px 9px;border-radius:99px;background:var(--pause-soft);color:var(--pause-ink);white-space:nowrap}
+.slot{border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.slot.fehlt{border:1.5px dashed var(--line)}
+.slot .sh{display:flex;align-items:center;gap:8px;font-size:14px}
+.slot .sh .pill{margin-left:auto}
 .leer{padding:28px 18px;text-align:center;color:var(--muted);line-height:1.5}
 .leer strong{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
 
@@ -202,6 +207,7 @@ input[type=range]{width:100%;height:28px}
   <header>
     <div class="logo" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
     <h1>Supercharge</h1>
+    <span class="tchip" id="tempChip" hidden title="Temperatur vom Sensor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg><span id="tempTxt"></span></span>
     <div class="conn"><span class="dot" id="connDot"></span><span id="connTxt">verbinde …</span></div>
     <button class="iconbtn" id="openSettings" aria-label="Einstellungen" title="Einstellungen">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -294,8 +300,15 @@ input[type=range]{width:100%;height:28px}
       <div class="full stack" style="gap:10px;border-top:1px solid var(--line);padding-top:14px">
         <h3 class="h2" style="margin:0">Ladekurven</h3>
         <div class="seg" id="recBikes" role="group" aria-label="Rad wählen"></div>
-        <div class="curveinfo" id="curveInfo">–</div>
+        <div class="curveinfo" id="tempInfo" hidden></div>
+        <div class="stack" id="curveSlots" style="gap:10px"></div>
         <div class="hint">Jedes Rad hat seine eigene Kurve – immer mit dem eigenen Ladegerät aufzeichnen. Akku möglichst leer fahren, Stand vom Fahrrad-Display eintragen, bis zum Ende laden lassen. Mehrere Räder können gleichzeitig aufzeichnen.</div>
+        <div style="font-weight:700;margin-top:4px">Neue Aufzeichnung als</div>
+        <div class="seg2" id="recArt" role="group" aria-label="Kurve wählen">
+          <button type="button" data-act="recArt" data-art="sommer">Sommerkurve</button>
+          <button type="button" data-act="recArt" data-art="winter">Winterkurve</button>
+        </div>
+        <div class="hint" id="recArtHint"></div>
         <div class="row"><span style="font-weight:600">Akkustand beim Start</span>
           <span class="stepper"><button type="button" data-act="recStep" data-d="-1" aria-label="1 % weniger">−</button><span class="big" id="recVal">10 %</span><button type="button" data-act="recStep" data-d="1" aria-label="1 % mehr">+</button></span>
         </div>
@@ -354,7 +367,7 @@ input[type=range]{width:100%;height:28px}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '2026-10-25 Adapter 0.2.0';
+const APP_VERSION = '2026-10-28 Adapter 0.3.0';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -395,8 +408,8 @@ let cfg = { ...defCfg };
 try { cfg = { ...defCfg, ...JSON.parse(localStorage.getItem(CFG_KEY) || '{}') }; } catch (e) {}
 const saveCfg = () => { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {} };
 
-const GEMEINSAM = ['info.konfig', 'Statistik'];
-const PRO_RAD = ['FertigBis', 'Phase', 'Plan', 'Hinweis', 'Kurve', 'StartSOCAufz', 'Modus', 'ZielSOC', 'SOC', 'StartSOC', 'Status', 'Flanke', 'Leistung', 'Laeuft', 'Verlauf', 'RestMinuten'];
+const GEMEINSAM = ['info.konfig', 'Statistik', 'Temperatur'];
+const PRO_RAD = ['KurveWinter', 'KurvenInfo', 'AufzArt', 'AktiveKurve', 'FertigBis', 'Phase', 'Plan', 'Hinweis', 'Kurve', 'StartSOCAufz', 'Modus', 'ZielSOC', 'SOC', 'StartSOC', 'Status', 'Flanke', 'Leistung', 'Laeuft', 'Verlauf', 'RestMinuten'];
 const keysAlle = () => [...GEMEINSAM, ...RAEDER.flatMap(r => PRO_RAD.map(k => `${r}.${k}`))];
 const pre = () => cfg.prefix.replace(/\.$/, '');
 const fullId = k => `${pre()}.${k}`;
@@ -491,7 +504,7 @@ const baueDemo = () => {
   const heute = new Date(), z = x => String(x).padStart(2, '0');
   const tag = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
   const gestern = new Date(Date.now() - 864e5);
-  const st = { 'info.konfig': KONFIG_TXT,
+  const st = { 'info.konfig': KONFIG_TXT, Temperatur: 8.5,
     Statistik: JSON.stringify([
       { rad: r2, datum: `${tag(gestern)} 20:05`, modus: 'laden', startSOC: 38, endSOC: 80, minuten: 104, wh: 231, grund: 'Ziel 80 % erreicht' },
       { rad: r1, datum: '2026-10-13 18:40', modus: 'laden', startSOC: 34, endSOC: 80, minuten: 112, wh: 336, grund: 'Ziel 80 % erreicht' },
@@ -500,7 +513,7 @@ const baueDemo = () => {
   const sim = {};
   for (const r of RAEDER) {
     Object.assign(st, { [`${r}.Modus`]: 'laden', [`${r}.ZielSOC`]: 80, [`${r}.SOC`]: r === r2 && r !== r1 ? 80 : 0, [`${r}.Status`]: 'bereit (Demo)',
-      [`${r}.FertigBis`]: '', [`${r}.Phase`]: '', [`${r}.Plan`]: '', [`${r}.Kurve`]: JSON.stringify(KURVEN[r]), [`${r}.StartSOCAufz`]: 10, [`${r}.Flanke`]: '', [`${r}.StartSOC`]: -1, [`${r}.Leistung`]: 0, [`${r}.Laeuft`]: false, [`${r}.Verlauf`]: '[]', [`${r}.RestMinuten`]: -1 });
+      [`${r}.FertigBis`]: '', [`${r}.Phase`]: '', [`${r}.Plan`]: '', [`${r}.Kurve`]: JSON.stringify(KURVEN[r]), [`${r}.KurveWinter`]: r === r1 ? JSON.stringify(bau(0.85, 74)) : '[]', [`${r}.KurvenInfo`]: '{}', [`${r}.AufzArt`]: 'sommer', [`${r}.AktiveKurve`]: '', [`${r}.StartSOCAufz`]: 10, [`${r}.Flanke`]: '', [`${r}.StartSOC`]: -1, [`${r}.Leistung`]: 0, [`${r}.Laeuft`]: false, [`${r}.Verlauf`]: '[]', [`${r}.RestMinuten`]: -1 });
     const k = KURVEN[r];
     sim[r] = { idx: 0, verlauf: [], start: 0, k, n: k.length, peak: k.reduce((bi, e, i) => (e.p > k[bi].p ? i : bi), 0) };
   }
@@ -595,8 +608,28 @@ const R = (r, k) => data?.[`${r}.${k}`];
 const laeuft = r => R(r, 'Laeuft') === true || R(r, 'Laeuft') === 'true';
 const modus = r => R(r, 'Modus') === 'aufzeichnen' ? 'aufzeichnen' : 'laden';
 const statistik = () => parse(data?.Statistik, []);
-const kurve = r => parse(R(r, 'Kurve'), []);
-const kurvenAufz = r => statistik().find(e => e.rad === r && e.modus === 'aufzeichnen');
+const KDP = { sommer: 'Kurve', winter: 'KurveWinter' };
+const kurveArt = (r, art) => { const k = parse(R(r, KDP[art]), []); return Array.isArray(k) && k.length >= 10 ? k : []; };
+const temperatur = () => { const t = data?.Temperatur; return t === null || t === undefined || t === '' || isNaN(Number(t)) ? null : Number(t); };
+const tempAktiv = () => !!(KONFIG && KONFIG.temp && KONFIG.temp.aktiv);
+const schwelle = () => Number(KONFIG && KONFIG.temp && KONFIG.temp.schwelle) || 12;
+/** Kurve, die beim nächsten Start gewählt würde (gleiche Regel wie im Adapter) */
+function wahlArt(r) {
+  const so = kurveArt(r, 'sommer').length, wi = kurveArt(r, 'winter').length;
+  if (!wi) return 'sommer'; if (!so) return 'winter';
+  const t = temperatur(); return t !== null && t < schwelle() ? 'winter' : 'sommer';
+}
+const aktivArt = r => (laeuft(r) && modus(r) === 'laden' && (R(r, 'AktiveKurve') === 'winter' || R(r, 'AktiveKurve') === 'sommer')) ? R(r, 'AktiveKurve') : wahlArt(r);
+const kurve = r => kurveArt(r, aktivArt(r));
+const hatZwei = r => kurveArt(r, 'sommer').length > 0 && kurveArt(r, 'winter').length > 0;
+const ARTNAME = { sommer: 'Sommerkurve', winter: 'Winterkurve' };
+const kInfo = (r, art) => {
+  const i = (parse(R(r, 'KurvenInfo'), {}) || {})[art]; if (i) return i;
+  const e = statistik().find(x => x.rad === r && x.modus === 'aufzeichnen' && (x.kurve || 'sommer') === art);   // ältere Kurven ohne Angaben
+  return e ? { datum: e.datum, start: e.startSOC, temp: e.temp ?? null } : null;
+};
+const fT = n => Number(n).toLocaleString('de-DE', { maximumFractionDigits: 1 });
+const kurvenAufz = r => statistik().find(e => e.rad === r && e.modus === 'aufzeichnen' && (e.kurve || 'sommer') === aktivArt(r));
 const peakOf = k => k.length ? k.reduce((a, b) => (b.p > a.p ? b : a)) : null;
 const letzte = r => statistik().find(e => e.rad === r && e.modus === 'laden');
 
@@ -767,7 +800,7 @@ function updateKarte(r) {
   const l = laeuft(r), m = modus(r), ziel = Number(R(r, 'ZielSOC')) || 80;
   pill(f('pill'), r); ringUpdate(f('ring'), r);
   f('run').hidden = !l; f('idle').hidden = l;
-  f('flank').hidden = m !== 'laden'; f('flank').textContent = flankText(r);
+  f('flank').hidden = m !== 'laden'; f('flank').textContent = flankText(r) + (hatZwei(r) || tempAktiv() ? ` · ${ARTNAME[aktivArt(r)]}` : '');
   f('p').textContent = `${fmt(R(r, 'Leistung'), 0)} W`;
   const plan = parse(R(r, 'Plan'), null) || {}, pause = pausiert(r), mitPlan = l && m === 'laden' && !!plan.aktiv;
   const spaet = l && plan.ziel && plan.fertig && plan.fertig > plan.ziel ? `<div class="sub late">später als gewünscht (${ts(plan.ziel)})</div>` : '';
@@ -820,7 +853,7 @@ function updateKarte(r) {
   const hinweis = (R(r, 'Hinweis') ?? (/^Keine Ladeleistung/.test(R(r, 'Status') || '') ? 'Letzter Start abgebrochen: kein Akku erkannt.' : '')) || '';
   f('warn').hidden = l || !hinweis || hinweisWeg[r] === hinweis;
   f('warnTxt').textContent = hinweis;
-  f('kinfo').textContent = k.length >= 10 ? `Ladekurve ${rec ? 'vom ' + kurzDatum(rec.datum).slice(0, 6) + ' ' : ''}· Wechsel bei ${pk.soc} %` : 'Noch keine Ladekurve – siehe Einstellungen';
+  f('kinfo').textContent = k.length >= 10 ? `${hatZwei(r) ? ARTNAME[aktivArt(r)] : 'Ladekurve'} ${rec ? 'vom ' + kurzDatum(rec.datum).slice(0, 6) + ' ' : ''}· Wechsel bei ${pk.soc} %` : 'Noch keine Ladekurve – siehe Einstellungen';
   const b = f('main');
   if (l) { b.className = 'btn stop'; b.textContent = 'Stoppen'; b.dataset.act = 'stop'; b.style.background = ''; b.style.color = ''; }
   else { b.className = 'btn'; b.textContent = `${NAME(r)} laden`; b.dataset.act = 'start'; b.style.background = farbe(r); b.style.color = 'var(--bg)'; b.disabled = k.length < 10; }
@@ -843,7 +876,7 @@ function svgChart(box, { series, marks = [], xLabel, yLabel, xMin, xMax }) {
     if (!s.pts.length) continue;
     const d = s.pts.map((p, i) => `${i ? 'L' : 'M'}${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join('');
     if (s.area) g += `<path d="${d}L${sx(s.pts[s.pts.length - 1][0]).toFixed(1)},${sy(0)}L${sx(s.pts[0][0]).toFixed(1)},${sy(0)}Z" style="fill:${s.color}" opacity=".12"/>`;
-    g += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    g += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="${s.dash ? 2 : 2.4}"${s.dash ? ' stroke-dasharray="5 4"' : ''} stroke-linejoin="round" stroke-linecap="round"/>`;
   }
   for (const m of marks) { const x = sx(m.x); g += `<line x1="${x}" x2="${x}" y1="${T}" y2="${H - B}" style="stroke:${m.color}" stroke-width="1.6" stroke-dasharray="5 4"/><text x="${x + 5}" y="${T - 8}" style="fill:${m.color};font-weight:700">${esc(m.label)}</text>`; }
   box.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(yLabel)} über ${esc(xLabel)}">${g}</svg>`;
@@ -887,7 +920,7 @@ function renderDetail() {
   ringUpdate($('#dRing'), r);
   const k = kurve(r), pk = peakOf(k);
   $('#dFlank').hidden = !(l && m === 'laden');
-  $('#dFlank').textContent = `${flankText(r)}${pk ? ` · Wechsel bei ca. ${pk.soc} %` : ''}`;
+  $('#dFlank').textContent = `${flankText(r)}${pk ? ` · Wechsel bei ca. ${pk.soc} %` : ''}${hatZwei(r) || tempAktiv() ? ` · ${ARTNAME[aktivArt(r)]}` : ''}`;
   const v = parse(R(r, 'Verlauf'), []), rest = R(r, 'RestMinuten') == null ? NaN : Number(R(r, 'RestMinuten'));
   $('#dP').textContent = l ? `${fmt(R(r, 'Leistung'))} W` : '–';
   const st0 = Number(R(r, 'StartSOC'));
@@ -919,24 +952,43 @@ function renderDetail() {
   } else {
     const marks = [{ x: ziel, color: 'var(--danger)', label: `Ziel ${ziel} %` }];
     const soc = Number(R(r, 'SOC')) || 0; if (l && m === 'laden' && soc > 0) marks.push({ x: soc, color: 'var(--ink)', label: `jetzt ${soc} %` });
-    svgChart(box, { series: [{ pts: k.map(e => [e.soc, e.p]), color: farbe(r), area: true }], marks, xLabel: 'SOC %', yLabel: 'W', xMin: 0, xMax: 100 });
-    $('#dLegend').innerHTML = `<span>Kurve von ${esc(NAME(r))} · Maximum ${fmt(pk.p)} W bei ${pk.soc} % · ${k.length} min</span>`;
+    const art = aktivArt(r), andere = art === 'winter' ? 'sommer' : 'winter', k2 = kurveArt(r, andere);
+    const series = [{ pts: k.map(e => [e.soc, e.p]), color: farbe(r), area: true }];
+    if (k2.length) series.unshift({ pts: k2.map(e => [e.soc, e.p]), color: 'var(--muted)', dash: true });
+    svgChart(box, { series, marks, xLabel: 'SOC %', yLabel: 'W', xMin: 0, xMax: 100 });
+    const zeile = (a, kk, aktiv) => { const i = kInfo(r, a), pkk = peakOf(kk);
+      return `<span><i style="background:${aktiv ? farbe(r) : 'var(--muted)'}${aktiv ? '' : ';opacity:.6'}"></i><strong>${ARTNAME[a]}</strong>${aktiv && k2.length ? ' · aktiv' : ''}${i && i.datum ? ` · ${esc(kurzDatum(i.datum).slice(0, 6))}` : ''}${i && i.temp != null ? ` bei ${fmt(i.temp, 0)} °C` : ''} · max. ${fmt(pkk.p)} W bei ${pkk.soc} %</span>`; };
+    $('#dLegend').innerHTML = zeile(art, k, true) + (k2.length ? zeile(andere, k2, false) : '');
   }
   $('#dStats').innerHTML = statsTable(statistik().filter(e => e.rad === r), false);
 }
 
 // ---------------- Einstellungen ----------------
 function renderSettings() {
-  const k = kurve(recRad), pk = peakOf(k), rec = kurvenAufz(recRad);
-  $('#curveInfo').innerHTML = k.length >= 10
-    ? `<svg viewBox="0 0 80 36" width="80" height="36" aria-hidden="true"><path d="${k.map((e, i) => `${i ? 'L' : 'M'}${(2 + e.soc * 0.76).toFixed(1)},${(34 - e.p / pk.p * 30).toFixed(1)}`).join('')}" fill="none" style="stroke:var(--ink)" stroke-width="2"/></svg>
-       <div><strong>${esc(NAME(recRad))}: ${rec ? `${esc(kurzDatum(rec.datum))} · ab ${rec.startSOC} %` : 'Kurve vorhanden'}</strong><br><span class="hint">Maximum ${fmt(pk.p)} W bei ${pk.soc} % · ${k.length} min</span></div>`
-    : `<div><strong>${esc(NAME(recRad))}: noch keine Ladekurve</strong><br><span class="hint">Ohne Kurve kann ${esc(NAME(recRad))} nicht gezielt laden.</span></div>`;
+  if (!recRad) { $('#curveSlots').innerHTML = ''; return; }
+  const t = temperatur(), sw = schwelle(), name = esc(NAME(recRad));
+  $('#tempInfo').hidden = !tempAktiv();
+  $('#tempInfo').innerHTML = `<div><strong>${t === null ? 'Temperatur: kein aktueller Messwert' : `Temperatur jetzt ${fT(t)} °C`}</strong> · Umschalten bei ${fT(sw)} °C<br><span class="hint">Unter ${fT(sw)} °C gilt die Winterkurve${t === null ? ' – ohne Messwert die Sommerkurve' : ''}</span></div>`;
+  const slot = art => {
+    const k = kurveArt(recRad, art), andere = kurveArt(recRad, art === 'winter' ? 'sommer' : 'winter');
+    const bereich = art === 'winter' ? `unter ${fT(sw)} °C` : `ab ${fT(sw)} °C`;
+    if (!k.length) return `<div class="slot fehlt"><div class="sh"><strong>${ARTNAME[art]}</strong><span class="hint">${bereich}</span><span class="pill">fehlt</span></div>
+      <div class="hint" style="font-size:13px">${andere.length ? `Noch nicht aufgezeichnet – bis dahin lädt ${name} immer mit der ${ARTNAME[art === 'winter' ? 'sommer' : 'winter']}.` : `Ohne Kurve kann ${name} nicht gezielt laden.`}</div></div>`;
+    const pk = peakOf(k), i = kInfo(recRad, art);
+    const datum = i ? i.datum : null, start = i ? i.start : null;
+    return `<div class="slot"><div class="sh"><strong>${ARTNAME[art]}</strong><span class="hint">${bereich}</span><span class="pill on" style="background:var(--ok-soft);color:var(--ok)">vorhanden</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><svg viewBox="0 0 80 36" width="80" height="36" aria-hidden="true"><path d="${k.map((e, j) => `${j ? 'L' : 'M'}${(2 + e.soc * 0.76).toFixed(1)},${(34 - e.p / pk.p * 30).toFixed(1)}`).join('')}" fill="none" style="stroke:${farbe(recRad)}" stroke-width="2"/></svg>
+      <div style="font-size:13px;line-height:1.4"><strong>${datum ? esc(kurzDatum(datum).slice(0, 6)) : 'Kurve vorhanden'}${start != null ? ` · ab ${start} %` : ''}${i && i.temp != null ? ` · bei ${fmt(i.temp, 0)} °C` : ''}</strong><br><span class="hint">Maximum ${fmt(pk.p)} W bei ${pk.soc} % · ${k.length} min</span></div></div></div>`;
+  };
+  $('#curveSlots').innerHTML = slot('sommer') + slot('winter');
+  if (!recArtWahl[recRad]) recArtWahl[recRad] = t !== null && t < sw ? 'winter' : 'sommer';
+  $$('#recArt button').forEach(b => b.classList.toggle('active', b.dataset.art === recArtWahl[recRad]));
+  $('#recArtHint').textContent = t !== null ? `Vorschlag passend zur aktuellen Temperatur (${fT(t)} °C). Die Temperatur beim Start wird mit der Kurve gespeichert.` : 'Die Sommerkurve wird verwendet, solange keine Winterkurve da ist.';
   const sa = R(recRad, 'StartSOCAufz') ?? 10;
   if (!busy(`${recRad}.StartSOCAufz`)) { $('#recSoc').value = sa; $('#recVal').textContent = `${sa} %`; }
   const irgendwer = RAEDER.some(laeuft);
   $('[data-act="recStart"]').disabled = laeuft(recRad);
-  $('[data-act="recStart"]').textContent = laeuft(recRad) ? `${NAME(recRad)} lädt gerade` : `Kurve für ${NAME(recRad)} aufzeichnen`;
+  $('[data-act="recStart"]').textContent = laeuft(recRad) ? `${NAME(recRad)} lädt gerade` : `${ARTNAME[recArtWahl[recRad]]} für ${NAME(recRad)} aufzeichnen`;
 }
 function bauRecBikes() {
   $('#recBikes').innerHTML = RAEDER.map(r => `<button type="button" data-act="recRad" data-rad="${r}" class="${r === recRad ? 'active' : ''}"><span class="cdot" style="width:10px;height:10px;background:${farbe(r)}"></span>${esc(NAME(r))}</button>`).join('');
@@ -945,6 +997,7 @@ function bauRecBikes() {
 // ---------------- Rendern / Polling ----------------
 function render() {
   if (!data) return;
+  const tt = temperatur(); $('#tempChip').hidden = !tempAktiv() || tt === null; if (tt !== null) $('#tempTxt').textContent = `${fT(tt)} °C`;
   if (!RAEDER.length) { renderMainLeer(); return; }
   if (view === 'main') renderMain(); else renderDetail();
   if (!$('#viewSettings').hidden) renderSettings();
@@ -978,7 +1031,7 @@ function konfigUebernehmen(txt, merken = true) {
 function demoKonfig() {
   let txt = null; try { txt = localStorage.getItem(KONFIG_KEY); } catch (e) { /* egal */ }
   try { if (txt && JSON.parse(txt).raeder.length) return txt; } catch (e) { /* weiter */ }
-  return JSON.stringify({ raeder: [{ id: 'rad1', name: 'Rad 1', farbe: 'blau' }, { id: 'rad2', name: 'Rad 2', farbe: 'orange' }], ziele: { lagerung: 60, alltag: 80 }, park: 80, puffer: 20, minPause: 15, backup: { aktiv: false } });
+  return JSON.stringify({ raeder: [{ id: 'rad1', name: 'Rad 1', farbe: 'blau' }, { id: 'rad2', name: 'Rad 2', farbe: 'orange' }], ziele: { lagerung: 60, alltag: 80 }, park: 80, puffer: 20, minPause: 15, backup: { aktiv: false }, temp: { aktiv: true, schwelle: 12 } });
 }
 async function poll() {
   try {
@@ -1007,7 +1060,7 @@ async function starte(r, mod, msg) {
 }
 
 // ---------------- Ereignisse ----------------
-let recTimer; const hinweisWeg = {};
+let recTimer; const hinweisWeg = {}, recArtWahl = {};
 document.addEventListener('click', async e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
   const r = t.dataset.rad, act = t.dataset.act;
@@ -1037,15 +1090,17 @@ document.addEventListener('click', async e => {
   }
   else if (act === 'closeSettings') { $('#viewSettings').hidden = true; scrollTo({ top: 0, behavior: 'smooth' }); }
   else if (act === 'recRad') { recRad = r; bauRecBikes(); renderSettings(); }
+  else if (act === 'recArt') { recArtWahl[recRad] = t.dataset.art; renderSettings(); }
   else if (act === 'recStep') {
     const s = $('#recSoc'); s.value = Math.min(50, Math.max(0, Number(s.value) + Number(t.dataset.d))); $('#recVal').textContent = `${s.value} %`;
     const key = `${recRad}.StartSOCAufz`; hold(key); clearTimeout(recTimer); recTimer = setTimeout(() => send(key, s.value), 600);
   }
   else if (act === 'recStart') {
     const v = $('#recSoc').value;
-    if (!(await ask(`Ladekurve für ${NAME(recRad)} aufzeichnen? Startwert ${v} %. Der Akku wird voll geladen, die bisherige Kurve von ${NAME(recRad)} wird ersetzt.`, 'Starten'))) return;
+    const art = recArtWahl[recRad] || 'sommer';
+    if (!(await ask(`${ARTNAME[art]} für ${NAME(recRad)} aufzeichnen? Startwert ${v} %. Der Akku wird voll geladen${kurveArt(recRad, art).length ? `, die bisherige ${ARTNAME[art]} wird ersetzt` : ''}.`, 'Starten'))) return;
     clearTimeout(recTimer);
-    try { await apiSet(`${recRad}.StartSOCAufz`, v); await starte(recRad, 'aufzeichnen', `Aufzeichnung für ${NAME(recRad)} gestartet`); } catch (err) { toast('Fehler: ' + err.message); }
+    try { await apiSet(`${recRad}.StartSOCAufz`, v); await apiSet(`${recRad}.AufzArt`, art); await starte(recRad, 'aufzeichnen', `${ARTNAME[art]} für ${NAME(recRad)} wird aufgezeichnet`); } catch (err) { toast('Fehler: ' + err.message); }
     $('#viewSettings').hidden = true; zeige('main');
   }
   else if (act === 'saveCfg') {

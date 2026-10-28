@@ -127,11 +127,50 @@
       "type": "panel",
       "label": "Laden",
       "items": {
+        "hdrTemp": {
+          "type": "header",
+          "text": "Temperatur und Ladekurven",
+          "size": 5,
+          "sm": 12
+        },
+        "introTemp": {
+          "type": "staticText",
+          "text": "Jedes Rad kann eine Sommer- und eine Winterkurve haben. Beim Start eines Ladevorgangs wählt Supercharge anhand der Temperatur die passende Kurve; sie bleibt bis zum Ende gleich. Gibt es nur eine Kurve oder keinen gültigen Messwert, gilt die vorhandene Kurve bzw. die Sommerkurve.",
+          "sm": 12
+        },
+        "tempDp": {
+          "type": "objectId",
+          "label": "Temperatur-Datenpunkt (optional)",
+          "sm": 12,
+          "md": 6,
+          "newLine": true
+        },
+        "tempSchwelle": {
+          "type": "number",
+          "label": "Umschalten bei (°C)",
+          "help": "Darunter: Winterkurve",
+          "min": -20,
+          "max": 40,
+          "step": 0.5,
+          "sm": 6,
+          "md": 3
+        },
+        "tempMaxAlterH": {
+          "type": "number",
+          "label": "Messwert gültig für (h)",
+          "help": "Älterer Wert: Sensor gilt als ausgefallen",
+          "min": 0.25,
+          "max": 48,
+          "step": 0.25,
+          "sm": 6,
+          "md": 3
+        },
         "hdrGeraet": {
           "type": "header",
           "text": "Ladegerät und Erkennung",
           "size": 5,
-          "sm": 12
+          "sm": 12,
+          "newLine": true
         },
         "minLeistung": {
           "type": "number",

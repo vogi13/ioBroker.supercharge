@@ -19,6 +19,8 @@ const hm = ms => { const d = new RealDate(ms); return `${pad(d.getHours())}:${pa
 const LADER = {
     schnell: soc => soc >= 100 ? 0.8 : soc < 80 ? 165 + (soc - 10) * 0.3 : 186 * Math.exp(-(soc - 80) / 8),
     langsam: soc => soc >= 100 ? 0.6 : soc < 85 ? 78 + (soc - 10) * 0.12 : 87 * Math.exp(-(soc - 85) / 5),
+    // schnelles Ladegerät bei Kälte: weniger Leistung, Abfall beginnt früher
+    kalt: soc => soc >= 100 ? 0.8 : soc < 74 ? 140 + (soc - 10) * 0.4 : 165.6 * Math.exp(-(soc - 74) / 9),
 };
 function kurve(lader) {
     const k = [], ps = []; let soc = 10;
@@ -40,12 +42,14 @@ function lauf(p) {
     try {
         jetzt = p.start;
         const W = { states: {}, an: {}, akku: {}, angesteckt: {}, ereignisse: [], log: [] };
-        const opt = { ...STANDARD, ...(p.opt || {}), plan: planung(p.backup) };
+        const opt = { ...STANDARD, tempSchwelle: 12, temperatur: () => (p.temp === undefined ? null : p.temp), ...(p.opt || {}), plan: planung(p.backup) };
         for (const r of p.raeder) {
             W.akku[r.id] = r.akku; W.an[r.id] = false; W.angesteckt[r.id] = r.angesteckt !== false;
             Object.assign(W.states, {
-                [`${r.id}.Kurve`]: kurve(LADER[r.lader]), [`${r.id}.ZielSOC`]: r.ziel, [`${r.id}.FertigBis`]: r.fertigBis || '',
-                [`${r.id}.Modus`]: 'laden', [`${r.id}.StartSOCAufz`]: 10, [`${r.id}.SOC`]: 0, [`${r.id}.Verlauf`]: '[]', [`${r.id}.Sitzung`]: '',
+                [`${r.id}.Kurve`]: r.sommer === null ? '[]' : kurve(LADER[r.sommer || r.lader]),
+                [`${r.id}.KurveWinter`]: r.winter ? kurve(LADER[r.winter]) : '[]', [`${r.id}.KurvenInfo`]: '{}', [`${r.id}.AufzArt`]: r.aufzArt || 'sommer',
+                [`${r.id}.ZielSOC`]: r.ziel, [`${r.id}.FertigBis`]: r.fertigBis || '',
+                [`${r.id}.Modus`]: r.modus || 'laden', [`${r.id}.StartSOCAufz`]: 10, [`${r.id}.SOC`]: 0, [`${r.id}.Verlauf`]: '[]', [`${r.id}.Sitzung`]: '',
             });
         }
         W.states.Statistik = '[]';

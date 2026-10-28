@@ -14,6 +14,7 @@ const WOCHENTAGE = ['backupSo', 'backupMo', 'backupDi', 'backupMi', 'backupDo', 
 
 const DP_GEMEINSAM = {
     Statistik: { def: '[]', type: 'string', role: 'json', name: 'Ladestatistik aller Räder (JSON)', write: false },
+    Temperatur: { def: null, type: 'number', unit: '°C', role: 'value.temperature', name: 'Temperatur vom eingestellten Sensor (leer = kein gültiger Wert)', write: false },
 };
 
 class Supercharge extends utils.Adapter {
@@ -27,6 +28,7 @@ class Supercharge extends utils.Adapter {
         this.offen = new Set();      // laufende Schreibvorgänge (für sauberes Beenden)
         this.server = null;
         this.verbindungInfo = {};
+        this.temp = { id: '', val: null, ts: 0, maxAlterMs: 3 * 3600e3 };
         this.on('ready', this.onReady.bind(this));
         this.on('stateChange', this.onStateChange.bind(this));
         this.on('message', this.onMessage.bind(this));
@@ -70,6 +72,8 @@ class Supercharge extends utils.Adapter {
             ziele: { lagerung: this.zahl(c.zielLagerung, 60, 20, 95), alltag: this.zahl(c.zielAlltag, 80, 20, 99) },
             backup,
             plan: planung(backup),
+            tempSchwelle: this.zahl(c.tempSchwelle, 12, -20, 40),
+            temperatur: () => this.temperatur(),
         };
     }
 
@@ -138,16 +142,29 @@ class Supercharge extends utils.Adapter {
     // ---------------- Start ----------------
     async onReady() {
         const raeder = this.raederAusKonfig();
+        this.temp.id = String(this.config.tempDp || '').trim();
+        this.temp.maxAlterMs = this.zahl(this.config.tempMaxAlterH, 3, 0.25, 48) * 3600e3;
         const opt = this.optionen();
         await this.objekteAnlegen(raeder);
         await this.setStateAsync('info.connection', false, true);
         await this.cacheLaden(raeder);
+        if (this.temp.id) {
+            try {
+                const st = await this.getForeignStateAsync(this.temp.id);
+                if (st) { this.temp.val = st.val; this.temp.ts = st.ts || Date.now(); }
+                else this.log.warn(`Temperatur: Datenpunkt ${this.temp.id} hat noch keinen Wert`);
+            } catch (e) { this.log.warn(`Temperatur: ${this.temp.id} nicht lesbar: ${e.message}`); }
+            await this.subscribeForeignStatesAsync(this.temp.id);
+            this.setInterval(() => this.temperaturVeroeffentlichen(), 10 * 60000);
+        }
+        this.temperaturVeroeffentlichen();
 
         this.set('info.konfig', JSON.stringify({
             version: this.version || '',
             raeder: raeder.map(r => ({ id: r.id, name: r.name, farbe: r.farbe })),
             ziele: opt.ziele, park: opt.parkSoc, puffer: opt.pufferMin, minPause: opt.minPauseMin,
             backup: opt.backup,
+            temp: { aktiv: !!this.temp.id, schwelle: opt.tempSchwelle },
         }));
 
         await this.appVerbindung();
@@ -174,6 +191,20 @@ class Supercharge extends utils.Adapter {
         }
         await this.setStateAsync('info.connection', true, true);
         this.log.info(`Supercharge bereit: ${raeder.map(r => r.name).join(', ')}${opt.backup.aktiv ? ` · Backup ${opt.backup.start} (${opt.backup.dauer} min) wird ausgespart` : ''}`);
+    }
+
+    // ---------------- Temperatur ----------------
+    /** gültige Temperatur (gerundet auf 0,1 °C) oder null */
+    temperatur() {
+        if (!this.temp.id) return null;
+        const v = typeof this.temp.val === 'string' ? parseFloat(this.temp.val.replace(',', '.')) : Number(this.temp.val);
+        if (this.temp.val === null || this.temp.val === undefined || !Number.isFinite(v)) return null;
+        if (Date.now() - this.temp.ts > this.temp.maxAlterMs) return null;
+        return Math.round(v * 10) / 10;
+    }
+    temperaturVeroeffentlichen() {
+        const t = this.temperatur();
+        if (this.cache.get('Temperatur') !== t) this.set('Temperatur', t);
     }
 
     // ---------------- App: eigener Webserver / simple-api ----------------
@@ -213,7 +244,7 @@ class Supercharge extends utils.Adapter {
         await this.server.starten();
     }
     appZustand() {
-        const states = { Statistik: this.cache.get('Statistik') ?? '[]' };
+        const states = { Statistik: this.cache.get('Statistik') ?? '[]', Temperatur: this.cache.get('Temperatur') ?? null };
         for (const rad of this.raeder) {
             for (const k of Object.keys(DP_RAD)) if (k !== 'Sitzung') states[`${rad.id}.${k}`] = this.cache.get(`${rad.id}.${k}`) ?? null;
         }
@@ -235,6 +266,11 @@ class Supercharge extends utils.Adapter {
             const rel = fid.slice(ns.length);
             if (state.ack) { this.cache.set(rel, state.val); return; }
             this.befehl(rel, state.val);
+            return;
+        }
+        if (this.temp.id && fid === this.temp.id) {
+            this.temp.val = state.val; this.temp.ts = state.ts || Date.now();
+            this.temperaturVeroeffentlichen();
             return;
         }
         const ziele = this.zuordnung.get(fid);

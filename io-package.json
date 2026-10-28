@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "news": {
+      "0.3.0": {
+        "en": "Summer and winter charge curve per bike, temperature sensor with switching threshold",
+        "de": "Sommer- und Winterkurve je Rad, Temperatursensor mit Umschaltschwelle"
+      },
       "0.2.1": {
         "en": "Admin: fixed jsonConfig warning (i18n)",
         "de": "Admin: Warnung zur jsonConfig behoben (i18n)"
@@ -112,7 +116,10 @@
     "webPasswort": "",
     "appQuelle": "eigen",
     "simpleApiInstanz": "simple-api.0",
-    "simpleApiUrl": ""
+    "simpleApiUrl": "",
+    "tempDp": "",
+    "tempSchwelle": 12,
+    "tempMaxAlterH": 3
   },
   "objects": [],
   "instanceObjects": [

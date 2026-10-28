@@ -91,5 +91,58 @@ describe('Supercharge Ladelogik (Simulation)', function () {
         assert.strictEqual(W.an.rad1, false);
     });
 
+    describe('Sommer- und Winterkurve', () => {
+        const fall = (temp, rad) => lauf({ start: t(19, 17, 0), bis: t(19, 21, 0), temp,
+            raeder: [{ id: 'rad1', lader: 'kalt', akku: 30, ziel: 80, ...rad }],
+            aktion: [[t(19, 17, 0), start('rad1')]] });
+
+        it('I: beide Kurven, 5 °C – Winterkurve, stoppt nahe 80 %', () => {
+            const W = fall(5, { sommer: 'schnell', winter: 'kalt' });
+            assert.strictEqual(W.states['rad1.AktiveKurve'], 'winter', zeig(W));
+            assert.strictEqual(W.statistik[0].kurve, 'winter');
+            assert.strictEqual(W.statistik[0].temp, 5);
+            assert.ok(W.akku.rad1 >= 76 && W.akku.rad1 <= 85, `Akku ${W.akku.rad1.toFixed(1)}` + zeig(W));
+        });
+        it('I2: beide Kurven, 15 °C – Sommerkurve', () => {
+            const W = fall(15, { sommer: 'schnell', winter: 'kalt', lader: 'schnell' });
+            assert.strictEqual(W.states['rad1.AktiveKurve'], 'sommer', zeig(W));
+        });
+        it('I3: genau auf der Schwelle (12 °C) – Sommerkurve', () => {
+            const W = fall(12, { sommer: 'schnell', winter: 'kalt', lader: 'schnell' });
+            assert.strictEqual(W.states['rad1.AktiveKurve'], 'sommer');
+        });
+        it('J: nur Sommerkurve, 5 °C – Sommerkurve gilt trotzdem', () => {
+            const W = fall(5, { sommer: 'schnell' });
+            assert.strictEqual(W.states['rad1.AktiveKurve'], 'sommer', zeig(W));
+            assert.ok(W.ereignisse.some(e => /Ziel 80 % erreicht/.test(e)), zeig(W));
+        });
+        it('K: nur Winterkurve, 20 °C – Winterkurve gilt trotzdem', () => {
+            const W = fall(20, { sommer: null, winter: 'kalt' });
+            assert.strictEqual(W.states['rad1.AktiveKurve'], 'winter', zeig(W));
+        });
+        it('L: kein gültiger Messwert – Sommerkurve', () => {
+            const W = fall(null, { sommer: 'schnell', winter: 'kalt' });
+            assert.strictEqual(W.states['rad1.AktiveKurve'], 'sommer', zeig(W));
+        });
+        it('Vergleich: bei Kälte stoppt die Winterkurve genauer als die Sommerkurve', () => {
+            const mitWinter = fall(5, { sommer: 'schnell', winter: 'kalt' });
+            const nurSommer = fall(5, { sommer: 'schnell' });
+            const abw = W => Math.abs(W.akku.rad1 - 80);
+            assert.ok(abw(mitWinter) <= abw(nurSommer), `Winter ${mitWinter.akku.rad1.toFixed(1)} % / Sommer ${nurSommer.akku.rad1.toFixed(1)} %`);
+        });
+        it('M: Aufzeichnung als Winterkurve – Sommerkurve bleibt, Angaben mit Temperatur', () => {
+            const W = lauf({ start: t(19, 17, 0), bis: t(20, 0, 0), temp: 4,
+                raeder: [{ id: 'rad1', lader: 'kalt', sommer: 'schnell', akku: 10, ziel: 80, modus: 'aufzeichnen', aufzArt: 'winter' }],
+                aktion: [[t(19, 17, 0), start('rad1')]] });
+            const so = JSON.parse(W.states['rad1.Kurve']), wi = JSON.parse(W.states['rad1.KurveWinter']);
+            assert.ok(wi.length > 100, zeig(W));
+            assert.ok(Math.max(...wi.map(e => e.p)) < 170, 'Winterkurve sollte die kalte Leistung zeigen');
+            assert.ok(Math.max(...so.map(e => e.p)) > 180, 'Sommerkurve darf nicht überschrieben werden');
+            const info = JSON.parse(W.states['rad1.KurvenInfo']);
+            assert.strictEqual(info.winter.temp, 4); assert.strictEqual(info.winter.start, 10);
+            assert.strictEqual(W.states['rad1.Modus'], 'laden');
+        });
+    });
+
     after(() => { void hm; });
 });

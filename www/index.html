@@ -369,7 +369,7 @@ input[type=range]{width:100%;height:28px}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '2026-10-28 Adapter 0.3.1';
+const APP_VERSION = '2026-10-30 Adapter 0.3.2';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -609,7 +609,7 @@ const kurzDatum = d => { const m = /^(\d{4})-(\d\d)-(\d\d) (\d\d:\d\d)/.exec(d |
 const R = (r, k) => data?.[`${r}.${k}`];
 const laeuft = r => R(r, 'Laeuft') === true || R(r, 'Laeuft') === 'true';
 const modus = r => R(r, 'Modus') === 'aufzeichnen' ? 'aufzeichnen' : 'laden';
-const statistik = () => parse(data?.Statistik, []);
+const statistik = () => parse(data?.Statistik, []).filter(e => (e.minuten || 0) > 0 || (e.wh || 0) > 0);   // abgebrochene Starts ohne Ladung ausblenden
 const KDP = { sommer: 'Kurve', winter: 'KurveWinter' };
 const kurveArt = (r, art) => { const k = parse(R(r, KDP[art]), []); return Array.isArray(k) && k.length >= 10 ? k : []; };
 const temperatur = () => { const t = data?.Temperatur; return t === null || t === undefined || t === '' || isNaN(Number(t)) ? null : Number(t); };
@@ -633,7 +633,7 @@ const kInfo = (r, art) => {
 const fT = n => Number(n).toLocaleString('de-DE', { maximumFractionDigits: 1 });
 const kurvenAufz = r => statistik().find(e => e.rad === r && e.modus === 'aufzeichnen' && (e.kurve || 'sommer') === aktivArt(r));
 const peakOf = k => k.length ? k.reduce((a, b) => (b.p > a.p ? b : a)) : null;
-const letzte = r => statistik().find(e => e.rad === r && e.modus === 'laden');
+const letzte = r => statistik().find(e => e.rad === r && e.modus === 'laden' && Number(e.endSOC) >= 0);
 
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600); }
 function ask(text, yesLabel = 'Ja', danger = false) {

@@ -112,6 +112,10 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ## Changelog
 
+### 0.3.2 (2026-10-30)
+- Fehler behoben: Meldet die Steckdose direkt nach dem Schalten kurz noch den alten Zustand, wurde eine Aufzeichnung als normaler Ladevorgang neu gestartet bzw. ein gestoppter Ladevorgang sofort wieder gestartet
+- Abgebrochene Starts ohne gemessene Minute erscheinen nicht mehr in der Statistik, kein Ladestand „-1 %“ mehr
+
 ### 0.3.1 (2026-10-28)
 - App: Temperatur rechts neben dem Verbindungsstatus
 

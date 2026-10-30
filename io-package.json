@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "news": {
+      "0.3.2": {
+        "en": "Ignore transient switch feedback right after switching; no empty statistics entries",
+        "de": "Zwischenmeldungen der Steckdose direkt nach dem Schalten werden ignoriert (Aufzeichnung wurde zu normalem Laden, Stoppen startete neu); keine leeren Statistik-Einträge"
+      },
       "0.3.1": {
         "en": "App: temperature shown on the right next to the connection status",
         "de": "App: Temperatur rechts neben dem Verbindungsstatus"

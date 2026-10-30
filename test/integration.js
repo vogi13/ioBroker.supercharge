@@ -121,6 +121,70 @@ tests.integration(path.join(__dirname, '..'), {
                 assert.strictEqual(pfad.status, 404);
             });
 
+            it('Aufzeichnung über die App-Schnittstelle startet als Aufzeichnung', async function () {
+                this.timeout(15000);
+                const post = (key, value) => fetch('http://127.0.0.1:18095/api/set', { method: 'POST', body: JSON.stringify({ key, value }) });
+                await post('rad1.StartSOCAufz', '15'); await post('rad1.AufzArt', 'winter');
+                await post('rad1.Modus', 'aufzeichnen'); await post('rad1.Start', true);
+                await warte(1500);
+                const z = await (await fetch('http://127.0.0.1:18095/api/zustand')).json();
+                console.log('ZUSTAND', z.states['rad1.Modus'], z.states['rad1.Laeuft'], z.states['rad1.Status'], z.states['rad1.AktiveKurve']);
+                assert.strictEqual(z.states['rad1.Modus'], 'aufzeichnen');
+                assert.ok(/aufzeichnen als Winterkurve/.test(z.states['rad1.Status']), z.states['rad1.Status']);
+                await post('rad1.Abbruch', true); await warte(1000);
+            });
+
+            it('Aufzeichnung über Datenpunkte (simple-api-Weg) startet als Aufzeichnung', async function () {
+                this.timeout(15000);
+                await harness.states.setStateAsync('supercharge.0.rad1.AufzArt', { val: 'winter', ack: false });
+                await harness.states.setStateAsync('supercharge.0.rad1.Modus', { val: 'aufzeichnen', ack: false });
+                await harness.states.setStateAsync('supercharge.0.rad1.Start', { val: true, ack: false });
+                await warte(1500);
+                const st = await harness.states.getStateAsync('supercharge.0.rad1.Status');
+                const mo = await harness.states.getStateAsync('supercharge.0.rad1.Modus');
+                console.log('DP', mo.val, st.val);
+                assert.strictEqual(mo.val, 'aufzeichnen');
+                await harness.states.setStateAsync('supercharge.0.rad1.Abbruch', { val: true, ack: false }); await warte(1000);
+            });
+
+            it('Shelly meldet nach dem Einschalten kurz noch „aus“ – Aufzeichnung läuft weiter', async function () {
+                this.timeout(15000);
+                await harness.states.setStateAsync('supercharge.0.rad1.AufzArt', { val: 'winter', ack: false });
+                await harness.states.setStateAsync('supercharge.0.rad1.Modus', { val: 'aufzeichnen', ack: false });
+                await harness.states.setStateAsync('supercharge.0.rad1.Start', { val: true, ack: false });
+                await warte(800);
+                // Gerät bestätigt erst den alten Zustand, dann den neuen
+                await harness.states.setStateAsync('0_userdata.0.plug1.Switch', { val: false, ack: true });
+                await warte(300);
+                await harness.states.setStateAsync('0_userdata.0.plug1.Switch', { val: true, ack: true });
+                await warte(1200);
+                const st = (await harness.states.getStateAsync('supercharge.0.rad1.Status')).val;
+                const mo = (await harness.states.getStateAsync('supercharge.0.rad1.Modus')).val;
+                console.log('NACH ECHO', mo, st);
+                assert.strictEqual(mo, 'aufzeichnen', st);
+                assert.ok(/aufzeichnen als Winterkurve/.test(st), st);
+                await harness.states.setStateAsync('supercharge.0.rad1.Abbruch', { val: true, ack: false }); await warte(1000);
+            });
+
+            it('Shelly meldet nach dem Ausschalten kurz noch „ein“ – Stoppen bleibt gestoppt', async function () {
+                this.timeout(15000);
+                await harness.states.setStateAsync('supercharge.0.rad1.Modus', { val: 'laden', ack: false });
+                await harness.states.setStateAsync('supercharge.0.rad1.Start', { val: true, ack: false });
+                await warte(800);
+                await harness.states.setStateAsync('0_userdata.0.plug1.Switch', { val: true, ack: true });
+                await warte(300);
+                await harness.states.setStateAsync('supercharge.0.rad1.Abbruch', { val: true, ack: false });
+                await warte(500);
+                await harness.states.setStateAsync('0_userdata.0.plug1.Switch', { val: true, ack: true });   // alter Zustand
+                await warte(300);
+                await harness.states.setStateAsync('0_userdata.0.plug1.Switch', { val: false, ack: true });
+                await warte(1200);
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.Laeuft')).val, false);
+                assert.ok(/manuell abgebrochen/.test((await harness.states.getStateAsync('supercharge.0.rad1.Status')).val));
+                const stat = JSON.parse((await harness.states.getStateAsync('supercharge.0.Statistik')).val);
+                assert.ok(stat.every(e => e.minuten > 0), 'Vorgänge ohne Minute dürfen nicht in die Statistik');
+            });
+
             it('Rad ohne Ladekurve startet nicht', async () => {
                 await harness.states.setStateAsync('supercharge.0.rad3.Start', { val: true, ack: false });
                 await warte(1500);

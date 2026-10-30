@@ -9,6 +9,7 @@ const { planung } = require('./lib/planung');
 const { webserver } = require('./lib/webserver');
 
 const MAX_RAEDER = 4;
+const SCHALT_SPERRE_MS = 20000;   // so lange nach eigenem Schalten abweichende Rückmeldungen ignorieren
 const FARBEN = ['blau', 'orange', 'gruen', 'lila'];
 const WOCHENTAGE = ['backupSo', 'backupMo', 'backupDi', 'backupMi', 'backupDo', 'backupFr', 'backupSa']; // Index = Date.getDay()
 
@@ -28,6 +29,7 @@ class Supercharge extends utils.Adapter {
         this.offen = new Set();      // laufende Schreibvorgänge (für sauberes Beenden)
         this.server = null;
         this.verbindungInfo = {};
+        this.befehle = new Map();    // zuletzt selbst geschaltet: Steckdose -> { val, ts }
         this.temp = { id: '', val: null, ts: 0, maxAlterMs: 3 * 3600e3 };
         this.on('ready', this.onReady.bind(this));
         this.on('stateChange', this.onStateChange.bind(this));
@@ -130,7 +132,11 @@ class Supercharge extends utils.Adapter {
             get: rel => this.cache.get(rel),
             set: (rel, v) => this.set(rel, v),
             getF: fid => this.fremd.get(fid),
-            setF: (fid, v) => { this.fremd.set(fid, v); this.merken(this.setForeignStateAsync(fid, v, false)); },
+            setF: (fid, v) => {
+                this.fremd.set(fid, v);
+                this.befehle.set(fid, { val: !!v, ts: Date.now() });
+                this.merken(this.setForeignStateAsync(fid, v, false));
+            },
             log: { info: t => this.log.info(t), warn: t => this.log.warn(t) },
             setInterval: (f, ms) => this.setInterval(f, ms),
             clearInterval: h => this.clearInterval(h),
@@ -276,10 +282,18 @@ class Supercharge extends utils.Adapter {
         const ziele = this.zuordnung.get(fid);
         if (!ziele) return;
         const vorher = this.fremd.get(fid);
+        // Kurz nach eigenem Schalten melden manche Geräte (z. B. Shelly Gen2/Gen3) erst noch den alten Zustand –
+        // solche Zwischenstände ignorieren, sonst würde ein Start als „an der Steckdose ausgeschaltet“ gewertet.
+        const cmd = this.befehle.get(fid);
+        const istAn = state.val === true || state.val === 'true' || state.val === 1;
+        if (cmd && ziele.some(z => z.art === 'schalter') && Date.now() - cmd.ts < SCHALT_SPERRE_MS && istAn !== cmd.val) {
+            this.log.debug(`${fid}: Zwischenstand ${state.val} kurz nach eigenem Schalten ignoriert`);
+            return;
+        }
         this.fremd.set(fid, state.val);
         for (const { rad, art } of ziele) {
             if (art === 'leistung') rad.leistungGeaendert(state.val);
-            else if (state.ack && vorher !== state.val) rad.schalterGeaendert(state.val === true || state.val === 'true' || state.val === 1);
+            else if (state.ack && vorher !== state.val) rad.schalterGeaendert(istAn);
         }
     }
     /** Schreibzugriff ohne ack (App, Skripte, Admin) */

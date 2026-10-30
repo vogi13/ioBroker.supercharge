@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "news": {
+      "0.3.3": {
+        "en": "App: settings as separate page, statistics shortened to the last 5 entries, axis fix for short charges",
+        "de": "App: Einstellungen als eigene Seite, Statistik auf die letzten 5 Einträge gekürzt (alle aufklappbar), Achse bei kurzen Vorgängen korrigiert"
+      },
       "0.3.2": {
         "en": "Ignore transient switch feedback right after switching; no empty statistics entries",
         "de": "Zwischenmeldungen der Steckdose direkt nach dem Schalten werden ignoriert (Aufzeichnung wurde zu normalem Laden, Stoppen startete neu); keine leeren Statistik-Einträge"

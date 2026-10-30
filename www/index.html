@@ -198,6 +198,14 @@ input[type=range]{width:100%;height:28px}
 .slot.fehlt{border:1.5px dashed var(--line)}
 .slot .sh{display:flex;align-items:center;gap:8px;font-size:14px}
 .slot .sh .pill{margin-left:auto}
+body.einstellungen .viewseg{display:none !important}
+@media (min-width:1000px){
+  #viewSettings > .form{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:28px;align-items:start}
+  #viewSettings .setl, #viewSettings .setr{grid-column:auto}
+  #viewSettings .setr .form{grid-template-columns:1fr}
+}
+.statsall{max-height:440px;overflow-y:auto}
+.mehr{margin-top:10px;border:0;background:var(--soft);color:var(--ink);min-height:40px;padding:0 14px;border-radius:12px;font-weight:700;cursor:pointer;width:100%}
 .leer{padding:28px 18px;text-align:center;color:var(--muted);line-height:1.5}
 .leer strong{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
 
@@ -294,12 +302,15 @@ input[type=range]{width:100%;height:28px}
   </div>
 
   <!-- ============ Einstellungen ============ -->
-  <section class="card" id="viewSettings" hidden style="margin-top:14px">
-    <div class="sethead"><h2 class="h2" style="margin:0">Einstellungen</h2><button class="iconbtn" data-act="closeSettings" aria-label="Schließen" style="font-size:22px">×</button></div>
+  <section class="card" id="viewSettings" hidden>
+    <div class="dhead" style="margin-bottom:6px">
+      <button class="iconbtn" data-act="closeSettings" aria-label="Zurück zur Übersicht" style="margin-left:-10px;color:var(--ink)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <h2 style="margin:0;font-size:22px;font-weight:800">Einstellungen</h2>
+    </div>
     <div class="form">
       <div class="full hint" style="font-size:13px">Räder, Steckdosen, Abschalt-Schwelle, Pause, Ladeziele und Backup-Zeit werden in ioBroker eingestellt: <strong>Instanzen → supercharge → Einstellungen</strong>.</div>
 
-      <div class="full stack" style="gap:10px;border-top:1px solid var(--line);padding-top:14px">
+      <div class="full stack setl" style="gap:10px;border-top:1px solid var(--line);padding-top:14px">
         <h3 class="h2" style="margin:0">Ladekurven</h3>
         <div class="seg" id="recBikes" role="group" aria-label="Rad wählen"></div>
         <div class="curveinfo" id="tempInfo" hidden></div>
@@ -318,6 +329,7 @@ input[type=range]{width:100%;height:28px}
         <button class="btn dark" data-act="recStart">Aufzeichnung starten</button>
       </div>
 
+      <div class="full setr"><div class="form">
       <div class="full" style="border-top:1px solid var(--line);padding-top:14px"><h3 class="h2" style="margin:0">Verbindung zu ioBroker</h3></div>
       <div class="full hint" id="cQuelle" style="font-size:13px"></div>
       <div class="field" id="fWebPass" hidden>
@@ -355,6 +367,7 @@ input[type=range]{width:100%;height:28px}
         <button class="btn ghost" data-act="demo" id="cDemo" style="flex:0 1 auto">Demo-Modus</button>
       </div>
       <div class="full hint" id="appVersion"></div>
+      </div></div>
     </div>
   </section>
 </main>
@@ -369,7 +382,7 @@ input[type=range]{width:100%;height:28px}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '2026-10-30 Adapter 0.3.2';
+const APP_VERSION = '2026-10-30 Adapter 0.3.3';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -871,7 +884,7 @@ function svgChart(box, { series, marks = [], xLabel, yLabel, xMin, xMax }) {
   const sx = x => L + (x - x0) / (x1 - x0 || 1) * (W - L - Rr), sy = y => T + (1 - y / y1) * (H - T - B);
   let g = '';
   for (let y = 0; y <= y1 + 1e-9; y += step) g += `<line x1="${L}" x2="${W - Rr}" y1="${sy(y)}" y2="${sy(y)}" stroke="var(--track)"/><text x="${L - 8}" y="${sy(y) + 4}" text-anchor="end">${fmt(y)}</text>`;
-  const xs = niceStep((x1 - x0) / Math.max(3, Math.floor(W / 110)));
+  const xs = Math.max(xLabel === 'Minuten' ? 1 : 0, niceStep((x1 - x0) / Math.max(3, Math.floor(W / 110))));
   for (let x = Math.ceil(x0 / xs) * xs; x <= x1 + 1e-9; x += xs) if (sx(x) <= W - Rr - 60) g += `<text x="${sx(x)}" y="${H - 8}" text-anchor="middle">${fmt(x)}</text>`;
   g += `<text x="${W - Rr}" y="${H - 8}" text-anchor="end">${esc(xLabel)}</text><text x="${L - 8}" y="10" text-anchor="end">${esc(yLabel)}</text>`;
   for (const s of series) {
@@ -892,10 +905,18 @@ function renderMainChart() {
   $('#mainLegend').innerHTML = series.map(s => `<span><i style="background:${s.color}"></i>${esc(NAME(s.r))}${laeuft(s.r) ? '' : ' (letzter Vorgang)'}</span>`).join('');
 }
 
-function statsTable(list, mitRad) {
+let alleStats = false;
+/** Übersicht: die letzten 5 Vorgänge, auf Wunsch alle (mit eigenem Scrollbereich) */
+function statsKurz(list) {
+  if (list.length <= 5) return statsTable(list, true);
+  return alleStats
+    ? `<div class="statsall">${statsTable(list, true, 100)}</div><button type="button" class="mehr" data-act="stats">Weniger anzeigen</button>`
+    : `${statsTable(list.slice(0, 5), true)}<button type="button" class="mehr" data-act="stats">Alle anzeigen (${list.length})</button>`;
+}
+function statsTable(list, mitRad, max = 12) {
   if (!list.length) return '<div class="hint">Noch keine Ladevorgänge.</div>';
   return `<table><thead><tr>${mitRad ? '<th>Rad</th>' : ''}<th>Datum</th><th>SOC</th><th>Dauer · Wh</th><th${mitRad ? ' class="opt"' : ''}>Ende</th></tr></thead><tbody>` +
-    list.slice(0, 12).map(e => `<tr>${mitRad ? `<td><span style="display:inline-flex;align-items:center;gap:6px"><span class="cdot" style="width:8px;height:8px;background:${farbe(e.rad)}"></span>${esc(statName(e))}</span></td>` : ''}
+    list.slice(0, max).map(e => `<tr>${mitRad ? `<td><span style="display:inline-flex;align-items:center;gap:6px"><span class="cdot" style="width:8px;height:8px;background:${farbe(e.rad)}"></span>${esc(statName(e))}</span></td>` : ''}
       <td>${esc(kurzDatum(e.datum))}${e.modus === 'aufzeichnen' ? '<div class="hint">Kurve</div>' : ''}</td>
       <td>${e.startSOC ?? '–'}→${e.endSOC ?? '–'} %</td><td>${hm(e.minuten || 0)}<div class="hint">${fmt(e.wh)} Wh</div></td>
       <td class="g${mitRad ? ' opt' : ''}">${esc(e.grund)}</td></tr>`).join('') + '</tbody></table>';
@@ -911,7 +932,7 @@ function renderMain() {
   whHeute += statistik().filter(e => (e.datum || '').startsWith(h)).reduce((a, e) => a + (e.wh || 0), 0);
   $('#sumP').textContent = `${fmt(sumP)} W`; $('#sumAktiv').textContent = `${aktiv} von ${RAEDER.length}`; $('#sumWh').textContent = `${fmt(whHeute)} Wh`;
   renderMainChart();
-  $('#stats').innerHTML = statsTable(statistik(), true);
+  $('#stats').innerHTML = statsKurz(statistik());
 }
 
 // ---------------- Detail ----------------
@@ -1000,17 +1021,18 @@ function bauRecBikes() {
 function render() {
   if (!data) return;
   const tt = temperatur(); $('#tempChip').hidden = !tempAktiv() || tt === null; if (tt !== null) $('#tempTxt').textContent = `${fT(tt)} °C`;
+  if (view === 'settings') { renderSettings(); return; }
   if (!RAEDER.length) { renderMainLeer(); return; }
   if (view === 'main') renderMain(); else renderDetail();
-  if (!$('#viewSettings').hidden) renderSettings();
 }
 function renderMainLeer() {
   $('#sumP').textContent = '–'; $('#sumAktiv').textContent = '–'; $('#sumWh').textContent = '–';
   $('#mainChart').innerHTML = '<div class="empty">Noch kein Rad eingerichtet.</div>'; $('#mainLegend').innerHTML = '';
-  $('#stats').innerHTML = statsTable(statistik(), true);
+  $('#stats').innerHTML = statsKurz(statistik());
 }
 function zeige(v) {
-  view = v; $('#viewMain').hidden = v !== 'main'; $('#viewDetail').hidden = v !== 'detail';
+  view = v; $('#viewMain').hidden = v !== 'main'; $('#viewDetail').hidden = v !== 'detail'; $('#viewSettings').hidden = v !== 'settings';
+  document.body.classList.toggle('einstellungen', v === 'settings');
   render(); scrollTo({ top: 0 });
 }
 /** Konfiguration des Adapters übernehmen (Räder, Farben, Ziele, Backup) */
@@ -1090,7 +1112,8 @@ document.addEventListener('click', async e => {
     send(`${rad}.ZielSOC`, v, `Ziel für ${NAME(rad)}: ${v} %`); hold(`${rad}.ZielSOC`);
     if (data) { data[`${rad}.ZielSOC`] = Number(v); render(); }
   }
-  else if (act === 'closeSettings') { $('#viewSettings').hidden = true; scrollTo({ top: 0, behavior: 'smooth' }); }
+  else if (act === 'closeSettings') zeige('main');
+  else if (act === 'stats') { alleStats = !alleStats; render(); }
   else if (act === 'recRad') { recRad = r; bauRecBikes(); renderSettings(); }
   else if (act === 'recArt') { recArtWahl[recRad] = t.dataset.art; renderSettings(); }
   else if (act === 'recStep') {
@@ -1103,13 +1126,13 @@ document.addEventListener('click', async e => {
     if (!(await ask(`${ARTNAME[art]} für ${NAME(recRad)} aufzeichnen? Startwert ${v} %. Der Akku wird voll geladen${kurveArt(recRad, art).length ? `, die bisherige ${ARTNAME[art]} wird ersetzt` : ''}.`, 'Starten'))) return;
     clearTimeout(recTimer);
     try { await apiSet(`${recRad}.StartSOCAufz`, v); await apiSet(`${recRad}.AufzArt`, art); await starte(recRad, 'aufzeichnen', `${ARTNAME[art]} für ${NAME(recRad)} wird aufgezeichnet`); } catch (err) { toast('Fehler: ' + err.message); }
-    $('#viewSettings').hidden = true; zeige('main');
+    zeige('main');
   }
   else if (act === 'saveCfg') {
     cfg = { ...cfg, base: $('#cBase').value.trim().replace(/\/+$/, ''), prefix: $('#cPrefix').value.trim() || defCfg.prefix, webPass: $('#cWebPass').value,
       user: $('#cUser').value.trim(), pass: $('#cPass').value, interval: Math.min(60, Math.max(1, Number($('#cInt').value) || 3)), demo: false };
     saveCfg(); syncDemo(); data = null; KONFIG = null; KONFIG_TXT = ''; if (demo) { demo.stopp(); demo = null; }
-    $('#viewSettings').hidden = true; toast('Gespeichert'); restart();
+    zeige('main'); toast('Gespeichert'); restart();
   }
   else if (act === 'demo') {
     cfg.demo = !cfg.demo; saveCfg(); syncDemo(); data = null; if (demo) { demo.stopp(); demo = null; }
@@ -1125,10 +1148,9 @@ $('#dZiel').addEventListener('change', () => send(`${detailRad}.ZielSOC`, $('#dZ
 $('#recSoc').addEventListener('input', () => { hold(`${recRad}.StartSOCAufz`); $('#recVal').textContent = `${$('#recSoc').value} %`; });
 $('#recSoc').addEventListener('change', () => send(`${recRad}.StartSOCAufz`, $('#recSoc').value));
 $('#openSettings').addEventListener('click', async () => {
-  const box = $('#viewSettings');
-  if (!box.hidden) { box.scrollIntoView({ behavior: 'smooth' }); return; }
+  if (view === 'settings') { scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (!(await ask('Möchtest du wirklich die Einstellungen verändern?'))) return;
-  box.hidden = false; if (data && recRad && laeuft(recRad)) recRad = RAEDER.find(r => !laeuft(r)) || recRad; bauRecBikes(); if (data) renderSettings(); box.scrollIntoView({ behavior: 'smooth' });
+  if (data && recRad && laeuft(recRad)) recRad = RAEDER.find(r => !laeuft(r)) || recRad; bauRecBikes(); zeige('settings');
 });
 
 const syncDemo = () => { $('#cDemo').textContent = cfg.demo ? 'Demo beenden' : 'Demo-Modus'; };

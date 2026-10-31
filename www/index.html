@@ -364,7 +364,6 @@ body.einstellungen .viewseg{display:none !important}
       </div>
       <div class="full btnrow" style="flex-wrap:wrap">
         <button class="btn dark" data-act="saveCfg" style="flex:0 1 auto">Speichern &amp; verbinden</button>
-        <button class="btn ghost" data-act="demo" id="cDemo" style="flex:0 1 auto">Demo-Modus</button>
       </div>
       <div class="full hint" id="appVersion"></div>
       </div></div>
@@ -382,7 +381,7 @@ body.einstellungen .viewseg{display:none !important}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '2026-10-30 Adapter 0.3.3';
+const APP_VERSION = '1.0.0';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -1068,7 +1067,7 @@ async function poll() {
     render();
   } catch (e) {
     setConn('err', 'keine Verbindung');
-    if (!data) $('#mainChart').innerHTML = `<div class="empty">Keine Verbindung zu ioBroker (${esc(e.message)}).<br>Über das Zahnrad die Verbindung prüfen oder den Demo-Modus ausprobieren.</div>`;
+    if (!data) $('#mainChart').innerHTML = `<div class="empty">Keine Verbindung zu ioBroker (${esc(e.message)}).<br>Über das Zahnrad die Verbindung prüfen.</div>`;
   }
 }
 function restart() { clearInterval(timer); poll(); timer = setInterval(poll, Math.max(1, Number(cfg.interval) || 3) * 1000); }
@@ -1131,13 +1130,9 @@ document.addEventListener('click', async e => {
   else if (act === 'saveCfg') {
     cfg = { ...cfg, base: $('#cBase').value.trim().replace(/\/+$/, ''), prefix: $('#cPrefix').value.trim() || defCfg.prefix, webPass: $('#cWebPass').value,
       user: $('#cUser').value.trim(), pass: $('#cPass').value, interval: Math.min(60, Math.max(1, Number($('#cInt').value) || 3)), demo: false };
-    saveCfg(); syncDemo(); data = null; KONFIG = null; KONFIG_TXT = ''; if (demo) { demo.stopp(); demo = null; }
+    saveCfg(); data = null; KONFIG = null; KONFIG_TXT = ''; if (demo) { demo.stopp(); demo = null; }
     zeige('main'); toast('Gespeichert'); restart();
   }
-  else if (act === 'demo') {
-    cfg.demo = !cfg.demo; saveCfg(); syncDemo(); data = null; if (demo) { demo.stopp(); demo = null; }
-    KONFIG = null; KONFIG_TXT = ''; if (cfg.demo) konfigUebernehmen(demoKonfig(), false);
-    restart(); toast(cfg.demo ? 'Demo-Modus: 1 Sekunde = 1 Minute' : 'Demo beendet'); }
 });
 document.addEventListener('input', e => {
   const t = e.target.closest('[data-f="fb"]'); if (!t) return;
@@ -1153,7 +1148,6 @@ $('#openSettings').addEventListener('click', async () => {
   if (data && recRad && laeuft(recRad)) recRad = RAEDER.find(r => !laeuft(r)) || recRad; bauRecBikes(); zeige('settings');
 });
 
-const syncDemo = () => { $('#cDemo').textContent = cfg.demo ? 'Demo beenden' : 'Demo-Modus'; };
 $('#cBase').value = cfg.base; $('#cBase').placeholder = STANDARD_API; $('#cBaseHint').textContent = `Leer lassen = ${STANDARD_API}`;
 $('#cInt').value = cfg.interval; $('#cUser').value = cfg.user; $('#cPass').value = cfg.pass; $('#cPrefix').value = cfg.prefix; $('#cWebPass').value = cfg.webPass || '';
 // Anzeige der Datenquelle
@@ -1161,8 +1155,8 @@ $('#fWebPass').hidden = !(SERVER && SERVER.quelle === 'eigen');
 $('#cQuelle').innerHTML = SERVER && SERVER.quelle === 'eigen'
   ? 'Daten kommen direkt vom <strong>Supercharge-Webserver</strong>. Die simple-api-Felder unten nur ausfüllen, wenn die App ausnahmsweise über simple-api laufen soll.'
   : `Daten kommen über <strong>simple-api</strong> (${esc(STANDARD_API)}${SERVER ? ', in ioBroker eingestellt' : ''}).`;
-syncDemo();
-if (cfg.demo) konfigUebernehmen(demoKonfig(), false);
+// Demo-Modus gibt es ab 1.0 nicht mehr – ein früher gespeicherter Demo-Zustand wird beendet
+if (cfg.demo) { cfg.demo = false; saveCfg(); }
 $('#appVersion').textContent = `App-Version ${APP_VERSION}`;
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(render, 150); });
 restart();

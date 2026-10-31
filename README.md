@@ -112,6 +112,10 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ## Changelog
 
+### 1.0.0 (2026-10-31)
+- Erste stabile Version
+- App: Demo-Modus entfernt
+
 ### 0.3.3 (2026-10-30)
 - App: Einstellungen als eigene Seite (am PC zweispaltig)
 - App: Ladestatistik zeigt die letzten 5 Vorgänge, „Alle anzeigen“ klappt die ganze Liste auf

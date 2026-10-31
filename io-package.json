@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "0.3.3",
+    "version": "1.0.0",
     "news": {
+      "1.0.0": {
+        "en": "First stable version; demo mode removed from the app",
+        "de": "Erste stabile Version; Demo-Modus aus der App entfernt"
+      },
       "0.3.3": {
         "en": "App: settings as separate page, statistics shortened to the last 5 entries, axis fix for short charges",
         "de": "App: Einstellungen als eigene Seite, Statistik auf die letzten 5 Einträge gekürzt (alle aufklappbar), Achse bei kurzen Vorgängen korrigiert"

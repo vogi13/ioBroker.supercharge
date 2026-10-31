@@ -91,35 +91,6 @@
               "default": ""
             }
           ]
-        },
-        "hdrImport": {
-          "type": "header",
-          "text": "Ladekurven aus dem Skript übernehmen",
-          "size": 5,
-          "newLine": true,
-          "sm": 12
-        },
-        "introImport": {
-          "type": "staticText",
-          "text": "Für den Umstieg vom Supercharge-Skript: Ordner der Skript-Datenpunkte eintragen, Einstellungen speichern, dann den Knopf drücken. Übernommen wird je Rad die Kurve <Ordner>.<Name>.Kurve (bzw. <Ordner>.Kurve) und die Statistik.",
-          "sm": 12
-        },
-        "importPrefix": {
-          "type": "text",
-          "label": "Datenpunkt-Ordner des Skripts",
-          "sm": 12,
-          "md": 6,
-          "newLine": true
-        },
-        "importBtn": {
-          "type": "sendTo",
-          "command": "importKurven",
-          "label": "Ladekurven übernehmen",
-          "jsonData": "{\"prefix\":\"${data.importPrefix}\"}",
-          "showProcess": true,
-          "variant": "outlined",
-          "sm": 12,
-          "md": 4
         }
       }
     },

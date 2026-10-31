@@ -33,7 +33,6 @@ class Supercharge extends utils.Adapter {
         this.temp = { id: '', val: null, ts: 0, maxAlterMs: 3 * 3600e3 };
         this.on('ready', this.onReady.bind(this));
         this.on('stateChange', this.onStateChange.bind(this));
-        this.on('message', this.onMessage.bind(this));
         this.on('unload', this.onUnload.bind(this));
     }
 
@@ -314,44 +313,6 @@ class Supercharge extends utils.Adapter {
         else if (typ === 'boolean') wert = v === true || v === 'true' || v === 1 || v === '1';
         else wert = v === null || v === undefined ? '' : String(v);
         this.set(rel, wert);
-    }
-
-    /** Nachrichten aus der Admin-Seite (Knopf „Ladekurven aus Skript übernehmen“) */
-    async onMessage(obj) {
-        if (!obj || obj.command !== 'importKurven') return;
-        const antwort = r => obj.callback && this.sendTo(obj.from, obj.command, r, obj.callback);
-        try {
-            const prefix = String((obj.message && obj.message.prefix) || '').trim().replace(/\.$/, '');
-            if (!prefix) return antwort({ error: 'Bitte den Datenpunkt-Ordner des Skripts eintragen.' });
-            if (!this.raeder.length) return antwort({ error: 'Zuerst Räder einrichten und speichern.' });
-            const ok = [], fehlt = [];
-            for (const rad of this.raeder) {
-                let quelle = null;
-                for (const fid of [`${prefix}.${rad.name}.Kurve`, `${prefix}.Kurve`]) {
-                    const st = await this.getForeignStateAsync(fid).catch(() => null);
-                    let k = null; try { k = JSON.parse(st && st.val); } catch (e) { /* ungültig */ }
-                    if (Array.isArray(k) && k.length >= 10) { quelle = { fid, text: st.val }; break; }
-                }
-                if (!quelle) { fehlt.push(rad.name); continue; }
-                this.set(`${rad.id}.Kurve`, quelle.text);
-                const sa = await this.getForeignStateAsync(quelle.fid.replace(/Kurve$/, 'StartSOCAufz')).catch(() => null);
-                if (sa && Number.isFinite(Number(sa.val))) this.set(`${rad.id}.StartSOCAufz`, Number(sa.val));
-                ok.push(`${rad.name} (aus ${quelle.fid})`);
-            }
-            // Statistik übernehmen, wenn hier noch leer
-            const stAlt = await this.getForeignStateAsync(`${prefix}.Statistik`).catch(() => null);
-            let statistikTxt = '';
-            if (stAlt && stAlt.val && (this.cache.get('Statistik') || '[]') === '[]') {
-                let alt = []; try { alt = JSON.parse(stAlt.val) || []; } catch (e) { /* leer */ }
-                const map = Object.fromEntries(this.raeder.map(r => [r.name, r.id]));
-                const neu = alt.map(e => ({ ...e, name: e.rad, rad: map[e.rad] || e.rad }));
-                if (neu.length) { this.set('Statistik', JSON.stringify(neu.slice(0, 100))); statistikTxt = ` Statistik: ${neu.length} Einträge übernommen.`; }
-            }
-            this.log.info(`Ladekurven übernommen: ${ok.join(', ') || 'keine'}${fehlt.length ? ` · nicht gefunden: ${fehlt.join(', ')}` : ''}`);
-            antwort({ result: `Übernommen: ${ok.length ? ok.map(t => t.split(' (')[0]).join(', ') : 'keine'}${fehlt.length ? ` · nicht gefunden: ${fehlt.join(', ')}` : ''}.${statistikTxt}` });
-        } catch (e) {
-            antwort({ error: e.message });
-        }
     }
 
     async onUnload(callback) {

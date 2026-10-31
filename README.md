@@ -75,12 +75,6 @@ etwas zu früh abschalten (in der Simulation ca. 75 % statt 80 %). Deshalb kann 
 - Kein Sensor oder Messwert älter als eingestellt: Sommerkurve.
 - Bisherige Kurven gelten nach dem Update als Sommerkurve.
 
-### Umstieg vom Supercharge-Skript
-
-Im Reiter „Räder“ den Datenpunkt-Ordner des Skripts eintragen (z. B. `0_userdata.0.SuperchargeDuo`), speichern und
-**Ladekurven übernehmen** drücken. Übernommen werden je Rad `<Ordner>.<Name>.Kurve` (bzw. `<Ordner>.Kurve`), der Startwert der
-Aufzeichnung und – wenn hier noch leer – die Statistik. Danach das Skript stoppen.
-
 ## Die App
 
 **`http://<ioBroker-IP>:8095/`** – vom eigenen Webserver des Adapters (Port im Reiter „App“). Ist dort ein Passwort gesetzt,
@@ -112,6 +106,9 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ## Changelog
 
+### 1.0.1 (2026-10-31)
+- Admin: „Ladekurven aus dem Skript übernehmen“ entfernt
+
 ### 1.0.0 (2026-10-31)
 - Erste stabile Version
 - App: Demo-Modus entfernt
@@ -142,7 +139,7 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ### 0.1.0 (2026-10-25)
 - Erste Version: 1–4 Räder, Ladekurve je Rad, Fertig-Uhrzeit, Backup-Zeitfenster mit Wochentagen, Fortsetzen nach Neustart,
-  Übernahme aus dem Skript, Web-App
+  Web-App
 
 ## License
 

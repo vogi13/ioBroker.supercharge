@@ -73,16 +73,11 @@ tests.integration(path.join(__dirname, '..'), {
                 assert.strictEqual(st.val, 60); assert.strictEqual(st.ack, true);
             });
 
-            it('übernimmt Ladekurven und Statistik aus dem Skript', async function () {
-                this.timeout(15000);
-                const antwort = await new Promise(resolve => harness.sendTo('supercharge.0', 'importKurven', { prefix: '0_userdata.0.alt' }, resolve));
-                assert.ok(antwort && /Jutta/.test(antwort.result), JSON.stringify(antwort));
-                assert.ok(/Werner/.test(antwort.result), 'Werner sollte als nicht gefunden gemeldet werden');
-                await warte(1000);
-                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.Kurve')).val, KURVE);
-                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.StartSOCAufz')).val, 12);
-                const stat = JSON.parse((await harness.states.getStateAsync('supercharge.0.Statistik')).val);
-                assert.strictEqual(stat[0].rad, 'rad1'); assert.strictEqual(stat[0].name, 'Jutta');
+            it('übernimmt eine Ladekurve, die in den Datenpunkt geschrieben wird', async () => {
+                await harness.states.setStateAsync('supercharge.0.rad1.Kurve', { val: KURVE, ack: false });
+                await warte(800);
+                const st = await harness.states.getStateAsync('supercharge.0.rad1.Kurve');
+                assert.strictEqual(st.val, KURVE); assert.strictEqual(st.ack, true);
             });
 
             it('Start schaltet die Steckdose ein, Abbruch wieder aus', async function () {

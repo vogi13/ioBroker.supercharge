@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "news": {
+      "1.0.1": {
+        "en": "Admin: removed import of charge curves from the script",
+        "de": "Admin: Übernahme der Ladekurven aus dem Skript entfernt"
+      },
       "1.0.0": {
         "en": "First stable version; demo mode removed from the app",
         "de": "Erste stabile Version; Demo-Modus aus der App entfernt"
@@ -67,7 +71,6 @@
     "loglevel": "info",
     "tier": 3,
     "mode": "daemon",
-    "messagebox": true,
     "type": "energy",
     "compact": true,
     "connectionType": "local",
@@ -125,7 +128,6 @@
     "backupFr": true,
     "backupSa": true,
     "backupSo": true,
-    "importPrefix": "0_userdata.0.SuperchargeDuo",
     "webAktiv": true,
     "bind": "0.0.0.0",
     "port": 8095,

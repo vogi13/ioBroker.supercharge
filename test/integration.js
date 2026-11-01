@@ -126,7 +126,14 @@ tests.integration(path.join(__dirname, '..'), {
                 console.log('ZUSTAND', z.states['rad1.Modus'], z.states['rad1.Laeuft'], z.states['rad1.Status'], z.states['rad1.AktiveKurve']);
                 assert.strictEqual(z.states['rad1.Modus'], 'aufzeichnen');
                 assert.ok(/aufzeichnen als Winterkurve/.test(z.states['rad1.Status']), z.states['rad1.Status']);
+                // während der Aufzeichnung gesperrt
+                const ziel = await post('rad1.ZielSOC', 60);
+                assert.strictEqual(ziel.status, 403);
+                await harness.states.setStateAsync('supercharge.0.rad1.AufzArt', { val: 'sommer', ack: false });
+                await warte(600);
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.AufzArt')).val, 'winter');
                 await post('rad1.Abbruch', true); await warte(1000);
+                assert.strictEqual((await post('rad1.ZielSOC', 60)).status, 200, 'nach der Aufzeichnung wieder änderbar');
             });
 
             it('Aufzeichnung über Datenpunkte (simple-api-Weg) startet als Aufzeichnung', async function () {

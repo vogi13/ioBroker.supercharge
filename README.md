@@ -106,6 +106,9 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ## Changelog
 
+### 1.0.2 (2026-10-31)
+- Während einer Kurvenaufzeichnung sind Ladeziel, Fertig-Uhrzeit und Kurveneinstellungen des Rads gesperrt; die App zeigt stattdessen eine Infokarte mit Startwert und Dauer und den Knopf „Aufzeichnung abbrechen“
+
 ### 1.0.1 (2026-10-31)
 - Admin: „Ladekurven aus dem Skript übernehmen“ entfernt
 

@@ -206,6 +206,8 @@ body.einstellungen .viewseg{display:none !important}
 }
 .statsall{max-height:440px;overflow-y:auto}
 .mehr{margin-top:10px;border:0;background:var(--soft);color:var(--ink);min-height:40px;padding:0 14px;border-radius:12px;font-weight:700;cursor:pointer;width:100%}
+.aufzinfo{display:flex;flex-direction:column;gap:6px;background:var(--danger-soft);color:var(--ink);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.4}
+.aufzinfo > strong:first-child{color:var(--danger);font-size:15px}
 .leer{padding:28px 18px;text-align:center;color:var(--muted);line-height:1.5}
 .leer strong{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
 
@@ -271,6 +273,8 @@ body.einstellungen .viewseg{display:none !important}
           </div>
         </section>
         <section class="card stack" style="gap:10px">
+          <div class="aufzinfo" id="dAufz" hidden></div>
+          <div class="stack" id="dZielBox" style="gap:10px">
           <div class="row"><label for="dZiel" style="font-weight:700">Ladeziel</label><span class="big" id="dZielVal">80 %</span></div>
           <input type="range" id="dZiel" min="50" max="100" step="5" value="80">
           <div class="ticks"><span>50 %</span><span>75 %</span><span>100 %</span></div>
@@ -279,7 +283,7 @@ body.einstellungen .viewseg{display:none !important}
             <button class="chip" data-act="ziel" data-v="80" data-z="1">Alltag 80 %</button>
             <button class="chip" data-act="ziel" data-v="100" data-z="2">Tour 100 %</button>
           </div>
-          <div id="dRecHint" class="hint" hidden>Die Ladekurve wird aufgezeichnet – es wird bis zum Ende geladen.</div>
+          </div>
           <button class="btn ghost" id="dVoll" data-act="jetztvoll" hidden>Jetzt voll laden</button>
           <button class="btn" id="dBtn" style="margin-top:6px">–</button>
         </section>
@@ -316,6 +320,8 @@ body.einstellungen .viewseg{display:none !important}
         <div class="curveinfo" id="tempInfo" hidden></div>
         <div class="stack" id="curveSlots" style="gap:10px"></div>
         <div class="hint">Jedes Rad hat seine eigene Kurve – immer mit dem eigenen Ladegerät aufzeichnen. Akku möglichst leer fahren, Stand vom Fahrrad-Display eintragen, bis zum Ende laden lassen. Mehrere Räder können gleichzeitig aufzeichnen.</div>
+        <div class="aufzinfo" id="recLaeuft" hidden></div>
+        <div class="stack" id="recBox" style="gap:10px">
         <div style="font-weight:700;margin-top:4px">Neue Aufzeichnung als</div>
         <div class="seg2" id="recArt" role="group" aria-label="Kurve wählen">
           <button type="button" data-act="recArt" data-art="sommer">Sommerkurve</button>
@@ -327,6 +333,7 @@ body.einstellungen .viewseg{display:none !important}
         </div>
         <input type="range" id="recSoc" min="0" max="50" step="1" value="10" aria-label="Akkustand beim Start">
         <button class="btn dark" data-act="recStart">Aufzeichnung starten</button>
+        </div>
       </div>
 
       <div class="full setr"><div class="form">
@@ -381,7 +388,7 @@ body.einstellungen .viewseg{display:none !important}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.2';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -637,6 +644,16 @@ const aktivArt = r => (laeuft(r) && modus(r) === 'laden' && (R(r, 'AktiveKurve')
 const kurve = r => kurveArt(r, aktivArt(r));
 const hatZwei = r => kurveArt(r, 'sommer').length > 0 && kurveArt(r, 'winter').length > 0;
 const ARTNAME = { sommer: 'Sommerkurve', winter: 'Winterkurve' };
+const aufz = r => laeuft(r) && modus(r) === 'aufzeichnen';
+const aufzArt = r => (R(r, 'AktiveKurve') === 'winter' || R(r, 'AufzArt') === 'winter' && R(r, 'AktiveKurve') !== 'sommer') ? 'winter' : 'sommer';
+/** Infokarte während einer Aufzeichnung (Details und Einstellungen) */
+function aufzInfoHtml(r) {
+  const plan = parse(R(r, 'Plan'), null) || {}, v = parse(R(r, 'Verlauf'), []), st = Number(R(r, 'StartSOC'));
+  const start = plan.start ? ts(plan.start) : null;
+  return `<strong>${ARTNAME[aufzArt(r)]} wird aufgezeichnet</strong>
+    <div>${start ? `gestartet ${start} · ` : ''}Startwert <strong>${st >= 0 ? st : '–'} %</strong>${v.length ? ` · läuft seit ${hm(v.length)}` : ''}</div>
+    <div class="hint">Es wird geladen, bis das Ladegerät fertig ist. Danach wird die Kurve gespeichert. Ladeziel und Kurveneinstellungen sind so lange gesperrt.</div>`;
+}
 const kInfo = (r, art) => {
   const i = (parse(R(r, 'KurvenInfo'), {}) || {})[art]; if (i) return i;
   const e = statistik().find(x => x.rad === r && x.modus === 'aufzeichnen' && (x.kurve || 'sommer') === art);   // ältere Kurven ohne Angaben
@@ -829,6 +846,7 @@ function updateKarte(r) {
     const rest = R(r, 'RestMinuten') == null ? NaN : Number(R(r, 'RestMinuten')); f('etaK').textContent = 'Fertig in ca.';
     f('eta').innerHTML = isNaN(rest) || rest < 0 ? 'wird berechnet …' : `${hm(rest)} <small>· ${uhr(rest)}</small>`;
   }
+  c.querySelector('.schips').hidden = aufz(r);   // während der Aufzeichnung kein Ladeziel
   c.querySelectorAll('.chip').forEach(b => {
     const a = Number(b.dataset.v) === ziel; b.classList.toggle('active', a);
     b.style.borderColor = a ? farbe(r) : ''; b.style.background = a ? soft(r) : ''; b.style.color = a ? ink(r) : '';
@@ -851,7 +869,7 @@ function updateKarte(r) {
   const vb = f('voll'); vb.hidden = !(pause || mitPlan); vb.textContent = pause ? 'Jetzt voll laden' : 'Ohne Pause laden';
   // einfache Ansicht: Fertig-Uhrzeit bzw. letzte Ladung
   const si = f('sinfo');
-  if (l && m === 'aufzeichnen') si.innerHTML = '<div class="k">Ladekurve</div><div class="big2 mid">wird aufgezeichnet</div><div class="sub">bis das Ladegerät fertig ist</div>';
+  if (l && m === 'aufzeichnen') { const v = parse(R(r, 'Verlauf'), []); si.innerHTML = `<div class="k">${ARTNAME[aufzArt(r)]}</div><div class="big2 mid">wird aufgezeichnet</div><div class="sub">${v.length ? `seit ${hm(v.length)} · ` : ''}bis das Ladegerät fertig ist</div>`; }
   else if (pause) si.innerHTML = `<div class="k">Lädt weiter um</div><div class="big2">${ts(plan.weiter)}</div><div class="sub">voll ca. ${ts(plan.fertig)}${plan.ziel ? ` · gewünscht ${ts(plan.ziel)}` : ''}</div>${spaet}`;
   else if (mitPlan && plan.fertig) si.innerHTML = `<div class="k">Voll um ca.</div><div class="big2">${ts(plan.fertig)}</div><div class="sub">Pause ab ${PARK_SOC} % · weiter um ${ts(plan.weiter)}</div>${spaet}`;
   else if (l) {
@@ -869,7 +887,7 @@ function updateKarte(r) {
   f('warnTxt').textContent = hinweis;
   f('kinfo').textContent = k.length >= 10 ? `${hatZwei(r) ? ARTNAME[aktivArt(r)] : 'Ladekurve'} ${rec ? 'vom ' + kurzDatum(rec.datum).slice(0, 6) + ' ' : ''}· Wechsel bei ${pk.soc} %` : 'Noch keine Ladekurve – siehe Einstellungen';
   const b = f('main');
-  if (l) { b.className = 'btn stop'; b.textContent = 'Stoppen'; b.dataset.act = 'stop'; b.style.background = ''; b.style.color = ''; }
+  if (l) { b.className = 'btn stop'; b.textContent = aufz(r) ? 'Aufzeichnung abbrechen' : 'Stoppen'; b.dataset.act = 'stop'; b.style.background = ''; b.style.color = ''; }
   else { b.className = 'btn'; b.textContent = `${NAME(r)} laden`; b.dataset.act = 'start'; b.style.background = farbe(r); b.style.color = 'var(--bg)'; b.disabled = k.length < 10; }
 }
 
@@ -955,9 +973,11 @@ function renderDetail() {
     const a = Number(b.dataset.v) === Number($('#dZiel').value); b.classList.toggle('active', a);
     b.style.borderColor = a ? farbe(r) : ''; b.style.background = a ? soft(r) : ''; b.style.color = a ? ink(r) : '';
   });
-  $('#dRecHint').hidden = !(l && m === 'aufzeichnen');
+  const az = aufz(r);
+  $('#dZielBox').hidden = az; $('#dAufz').hidden = !az;
+  if (az) $('#dAufz').innerHTML = aufzInfoHtml(r);
   const b = $('#dBtn');
-  if (l) { b.className = 'btn stop'; b.textContent = 'Laden stoppen'; b.dataset.act = 'stop'; b.style.background = ''; b.style.color = ''; b.disabled = false; }
+  if (l) { b.className = 'btn stop'; b.textContent = az ? 'Aufzeichnung abbrechen' : 'Laden stoppen'; b.dataset.act = 'stop'; b.style.background = ''; b.style.color = ''; b.disabled = false; }
   else { b.className = 'btn'; b.textContent = `${NAME(r)} laden`; b.dataset.act = 'start'; b.style.background = farbe(r); b.style.color = 'var(--bg)'; b.disabled = k.length < 10; }
   b.dataset.rad = r;
   const dplan = parse(R(r, 'Plan'), null) || {}, dv = $('#dVoll');
@@ -1009,6 +1029,9 @@ function renderSettings() {
   const sa = R(recRad, 'StartSOCAufz') ?? 10;
   if (!busy(`${recRad}.StartSOCAufz`)) { $('#recSoc').value = sa; $('#recVal').textContent = `${sa} %`; }
   const irgendwer = RAEDER.some(laeuft);
+  const az = aufz(recRad);
+  $('#recBox').hidden = az; $('#recLaeuft').hidden = !az;
+  if (az) $('#recLaeuft').innerHTML = aufzInfoHtml(recRad);
   $('[data-act="recStart"]').disabled = laeuft(recRad);
   $('[data-act="recStart"]').textContent = laeuft(recRad) ? `${NAME(recRad)} lädt gerade` : `${ARTNAME[recArtWahl[recRad]]} für ${NAME(recRad)} aufzeichnen`;
 }
@@ -1104,7 +1127,11 @@ document.addEventListener('click', async e => {
   }
   else if (act === 'm100') { modus100[r] = t.dataset.m; render(); }
   else if (act === 'jetztvoll') send(`${r || detailRad}.JetztVoll`, true, pausiert(r || detailRad) ? 'Lädt jetzt voll' : 'Lädt ohne Pause');
-  else if (act === 'stop') { if (await ask(`Ladevorgang von ${NAME(r)} wirklich stoppen?`, 'Stoppen', true)) send(`${r}.Abbruch`, true, `${NAME(r)} gestoppt`); }
+  else if (act === 'stop') {
+    const az = aufz(r);
+    if (await ask(az ? `Aufzeichnung für ${NAME(r)} abbrechen? Die ${ARTNAME[aufzArt(r)]} wird dann nicht gespeichert.` : `Ladevorgang von ${NAME(r)} wirklich stoppen?`, az ? 'Abbrechen' : 'Stoppen', true))
+      send(`${r}.Abbruch`, true, az ? `Aufzeichnung für ${NAME(r)} abgebrochen` : `${NAME(r)} gestoppt`);
+  }
   else if (act === 'ziel') {
     const rad = r || detailRad, v = t.dataset.v;
     if (!r) { $('#dZiel').value = v; $('#dZielVal').textContent = `${v} %`; }

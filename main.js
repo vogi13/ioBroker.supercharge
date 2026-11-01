@@ -9,7 +9,8 @@ const { planung } = require('./lib/planung');
 const { webserver } = require('./lib/webserver');
 
 const MAX_RAEDER = 4;
-const SCHALT_SPERRE_MS = 20000;   // so lange nach eigenem Schalten abweichende Rückmeldungen ignorieren
+const SCHALT_SPERRE_MS = 20000;
+const GESPERRT_BEI_AUFZ = ['ZielSOC', 'FertigBis', 'AufzArt', 'StartSOCAufz', 'Kurve', 'KurveWinter', 'Modus'];   // je Rad, solange es aufzeichnet   // so lange nach eigenem Schalten abweichende Rückmeldungen ignorieren
 const FARBEN = ['blau', 'orange', 'gruen', 'lila'];
 const WOCHENTAGE = ['backupSo', 'backupMo', 'backupDi', 'backupMi', 'backupDo', 'backupFr', 'backupSa']; // Index = Date.getDay()
 
@@ -259,7 +260,7 @@ class Supercharge extends utils.Adapter {
         const [radId, k] = key.split('.');
         if (!this.raeder.some(r => r.id === radId) || !DP_RAD[k]) return 'Unbekannter Datenpunkt';
         if (DP_RAD[k].write === false) return 'Nur lesbar';
-        this.befehl(key, value);
+        if (this.befehl(key, value) === false) return 'Während der Aufzeichnung gesperrt';
         return true;
     }
 
@@ -308,6 +309,11 @@ class Supercharge extends utils.Adapter {
         if (!typ) return;
         const d = rad && DP_RAD[key];
         if (d && d.write === false) { this.set(rel, this.cache.get(rel)); return; }   // nur lesbar: alten Wert behalten
+        if (rad && GESPERRT_BEI_AUFZ.includes(key) && rad.zeichnetAuf()) {             // während einer Aufzeichnung gesperrt
+            this.log.info(`${rad.name}: ${key} kann während der Aufzeichnung nicht geändert werden`);
+            this.set(rel, this.cache.get(rel));
+            return false;
+        }
         let wert = v;
         if (typ === 'number') { wert = Number(v); if (!Number.isFinite(wert)) return; if (d && d.min !== undefined) wert = Math.max(d.min, wert); if (d && d.max !== undefined) wert = Math.min(d.max, wert); }
         else if (typ === 'boolean') wert = v === true || v === 'true' || v === 1 || v === '1';

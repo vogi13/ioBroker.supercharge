@@ -231,6 +231,7 @@ class Supercharge extends utils.Adapter {
                 } else if (!sa.url) this.log.warn(`App: Instanz ${inst} nicht gefunden – bitte im Reiter App prüfen`);
             } catch (e) { this.log.warn(`App: ${inst} nicht lesbar: ${e.message}`); }
             info.simpleApi = sa;
+            info.simpleApiAuth = !!String(c.simpleApiUser || '').trim();
         }
         this.verbindungInfo = info;
 
@@ -245,6 +246,8 @@ class Supercharge extends utils.Adapter {
             zustand: () => this.appZustand(),
             setzen: (key, value) => this.appSetzen(key, value),
             verbindung: () => this.verbindungInfo,
+            geheim: () => (this.verbindungInfo.quelle === 'simpleapi' && this.config.simpleApiUser
+                ? { user: String(this.config.simpleApiUser), pass: String(this.config.simpleApiPass || '') } : {}),
             log: { info: t => this.log.info(t), warn: t => this.log.warn(t), error: t => this.log.error(t) },
         });
         await this.server.starten();

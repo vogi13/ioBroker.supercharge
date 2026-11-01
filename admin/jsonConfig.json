@@ -448,9 +448,26 @@
           "sm": 12,
           "md": 6
         },
+        "simpleApiUser": {
+          "type": "text",
+          "label": "simple-api-Benutzer (optional)",
+          "help": "Nur wenn bei simple-api eine Anmeldung eingeschaltet ist",
+          "hidden": "data.appQuelle !== 'simpleapi' && data.webAktiv !== false",
+          "sm": 12,
+          "md": 4,
+          "newLine": true
+        },
+        "simpleApiPass": {
+          "type": "password",
+          "label": "simple-api-Passwort",
+          "hidden": "data.appQuelle !== 'simpleapi' && data.webAktiv !== false",
+          "disabled": "!data.simpleApiUser",
+          "sm": 12,
+          "md": 4
+        },
         "hinweisAuth": {
           "type": "staticText",
-          "text": "Benutzer und Passwort für simple-api (falls dort eine Anmeldung eingeschaltet ist) werden in der App unter Einstellungen eingegeben.",
+          "text": "Benutzer und Passwort gibt der Supercharge-Webserver an die App weiter. Bitte dann auch ein App-Passwort setzen, damit nicht jeder im Heimnetz die Anmeldedaten abrufen kann. Ohne eigenen Webserver (App über den web-Adapter) muss simple-api ohne Anmeldung auf demselben Rechner (Port 8087) laufen.",
           "hidden": "data.appQuelle !== 'simpleapi' && data.webAktiv !== false",
           "sm": 12
         }

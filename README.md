@@ -80,9 +80,10 @@ etwas zu früh abschalten (in der Simulation ca. 75 % statt 80 %). Deshalb kann 
 **`http://<ioBroker-IP>:8095/`** – vom eigenen Webserver des Adapters (Port im Reiter „App“). Ist dort ein Passwort gesetzt,
 wird es einmal in der App unter Zahnrad → „App-Passwort“ eingegeben. Auf dem Handy über „Zum Home-Bildschirm“ als Symbol ablegen.
 
-Mit Datenquelle **simple-api** holt die App ihre Daten über die gewählte simple-api-Instanz. Ist der eigene Webserver
+Mit Datenquelle **simple-api** holt die App ihre Daten über die im Reiter „App“ gewählte simple-api-Instanz; Adresse,
+Benutzer und Passwort werden ebenfalls dort eingetragen (in der App gibt es dafür keine Felder). Ist der eigene Webserver
 ausgeschaltet, ist die App über den web-Adapter erreichbar: `http://<ioBroker-IP>:8082/supercharge/index.html`
-(Daten dann immer über simple-api auf demselben Rechner, Port 8087 – in der App über das Zahnrad änderbar).
+(Daten dann immer über simple-api ohne Anmeldung auf demselben Rechner, Port 8087).
 
 Die Schnittstelle des eigenen Webservers kennt nur die Datenpunkte von Supercharge: lesen über `GET /api/zustand`,
 schreiben (nur Ziel, Fertig-Uhrzeit, Modus, Startwert, Hinweis und die Knöpfe) über `POST /api/set` mit `{"key":"rad1.ZielSOC","value":80}`.
@@ -105,6 +106,9 @@ schreiben (nur Ziel, Fertig-Uhrzeit, Modus, Startwert, Hinweis und die Knöpfe) 
 Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('supercharge.0.rad1.Start', true)`).
 
 ## Changelog
+
+### 1.0.3 (2026-11-01)
+- simple-api-Adresse, -Benutzer und -Passwort werden nur noch in den Instanzeinstellungen (Reiter „App“) festgelegt; die App zeigt dafür keine Felder mehr
 
 ### 1.0.2 (2026-10-31)
 - Während einer Kurvenaufzeichnung sind Ladeziel, Fertig-Uhrzeit und Kurveneinstellungen des Rads gesperrt; die App zeigt stattdessen eine Infokarte mit Startwert und Dauer und den Knopf „Aufzeichnung abbrechen“

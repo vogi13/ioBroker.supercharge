@@ -8,7 +8,8 @@ describe('Webserver mit Passwort', () => {
         srv = webserver({ bind: '127.0.0.1', port: 18096, passwort: 'geheim äö',
             zustand: () => ({ konfig: '{}', states: { 'rad1.SOC': 50 } }),
             setzen: (k, v) => { gesetzt.push([k, v]); return true; },
-            verbindung: () => ({ quelle: 'eigen', passwort: true }),
+            verbindung: () => ({ quelle: 'simpleapi', passwort: true, simpleApiAuth: true }),
+            geheim: () => ({ user: 'sa', pass: 'pw' }),
             log: { info() {}, warn() {}, error() {} } });
         assert.ok(await srv.starten());
     });
@@ -24,6 +25,13 @@ describe('Webserver mit Passwort', () => {
         const ok = await fetch('http://127.0.0.1:18096/api/zustand', { headers: { Authorization: `Bearer ${encodeURIComponent('geheim äö')}` } });
         assert.strictEqual(ok.status, 200);
         assert.strictEqual((await ok.json()).states['rad1.SOC'], 50);
+    });
+    it('simple-api-Anmeldung nur mit App-Passwort', async () => {
+        assert.strictEqual((await fetch('http://127.0.0.1:18096/api/verbindung')).status, 401);
+        const ok = await fetch('http://127.0.0.1:18096/api/verbindung', { headers: { Authorization: `Bearer ${encodeURIComponent('geheim äö')}` } });
+        assert.deepStrictEqual(await ok.json(), { user: 'sa', pass: 'pw' });
+        const html = await (await fetch('http://127.0.0.1:18096/')).text();
+        assert.ok(!html.includes('"pw"'), 'Passwort darf nicht in der Seite stehen');
     });
     it('Schreiben mit Passwort', async () => {
         const r = await fetch('http://127.0.0.1:18096/api/set', { method: 'POST', headers: { Authorization: `Bearer ${encodeURIComponent('geheim äö')}` }, body: JSON.stringify({ key: 'rad1.ZielSOC', value: 60 }) });

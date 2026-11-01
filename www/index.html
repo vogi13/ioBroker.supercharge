@@ -342,32 +342,11 @@ body.einstellungen .viewseg{display:none !important}
       <div class="field" id="fWebPass" hidden>
         <label for="cWebPass">App-Passwort</label>
         <input id="cWebPass" type="password" autocomplete="current-password">
-        <small>Wie in ioBroker im Reiter „App“ festgelegt</small>
+        <small>Wie in ioBroker unter Instanzen → supercharge → Reiter „App“ festgelegt</small>
       </div>
       <div class="field">
         <label for="cInt">Aktualisierung (Sekunden)</label>
         <input id="cInt" type="number" min="1" max="60">
-      </div>
-      <div class="full stack" id="fSimple" style="gap:12px">
-        <div class="form">
-          <div class="field">
-            <label for="cBase">simple-api-Adresse</label>
-            <input id="cBase" autocapitalize="off" spellcheck="false">
-            <small id="cBaseHint"></small>
-          </div>
-          <div class="field">
-            <label for="cPrefix">Datenpunkt-Ordner</label>
-            <input id="cPrefix" autocapitalize="off" spellcheck="false">
-          </div>
-          <div class="field">
-            <label for="cUser">simple-api-Benutzer (optional)</label>
-            <input id="cUser" autocapitalize="off" autocomplete="username">
-          </div>
-          <div class="field">
-            <label for="cPass">simple-api-Passwort (optional)</label>
-            <input id="cPass" type="password" autocomplete="current-password">
-          </div>
-        </div>
       </div>
       <div class="full btnrow" style="flex-wrap:wrap">
         <button class="btn dark" data-act="saveCfg" style="flex:0 1 auto">Speichern &amp; verbinden</button>
@@ -388,7 +367,7 @@ body.einstellungen .viewseg{display:none !important}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.0.3';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -427,6 +406,17 @@ const KONFIG_KEY = 'supercharge.konfig';
 const defCfg = { base: '', prefix: (SERVER && SERVER.prefix) || 'supercharge.0', user: '', pass: '', webPass: '', interval: 3, demo: false };
 let cfg = { ...defCfg };
 try { cfg = { ...defCfg, ...JSON.parse(localStorage.getItem(CFG_KEY) || '{}') }; } catch (e) {}
+// simple-api-Adresse, Benutzer, Passwort und Datenpunkt-Ordner kommen ab 1.0.3 aus den Instanzeinstellungen
+cfg.base = ''; cfg.user = ''; cfg.pass = ''; cfg.prefix = defCfg.prefix;
+let saAuthGeholt = false;
+/** simple-api-Anmeldung (in ioBroker hinterlegt) vom Supercharge-Webserver holen – nur mit gültigem App-Passwort */
+async function saAuthHolen() {
+  if (saAuthGeholt || !SERVER || !SERVER.simpleApiAuth) return;
+  const r = await fetch('api/verbindung', { cache: 'no-store', headers: webHdr() });
+  if (r.status === 401) throw new Error(cfg.webPass ? 'App-Passwort falsch' : 'App-Passwort nötig – über das Zahnrad eingeben');
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j = await r.json(); cfg.user = j.user || ''; cfg.pass = j.pass || ''; saAuthGeholt = true;
+}
 const saveCfg = () => { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {} };
 
 const GEMEINSAM = ['info.konfig', 'Statistik', 'Temperatur'];
@@ -472,7 +462,7 @@ async function holeAlle(base) {
   }
 }
 // Eigener Webserver: Daten direkt vom Adapter (nur, wenn keine simple-api-Adresse von Hand eingetragen ist)
-const eigeneQuelle = () => !!SERVER && SERVER.quelle === 'eigen' && !cfg.base;
+const eigeneQuelle = () => !!SERVER && SERVER.quelle === 'eigen';
 const webHdr = () => (cfg.webPass ? { Authorization: `Bearer ${encodeURIComponent(cfg.webPass)}` } : {});
 async function eigenHolen() {
   const r = await fetch('api/zustand', { cache: 'no-store', headers: webHdr() });
@@ -484,6 +474,7 @@ async function eigenHolen() {
 }
 async function apiGetAll(base = baseUrl()) {
   if (!cfg.demo && eigeneQuelle()) return eigenHolen();
+  if (!cfg.demo) await saAuthHolen();
   if (cfg.demo) { if (!demo) demo = baueDemo(); return demo.get(); }
   if (!KONFIG) {   // zuerst wissen, welche Räder es gibt
     const [k] = await holeBulk(base, ['info.konfig']);
@@ -1083,8 +1074,7 @@ async function poll() {
   try {
     try { data = await apiGetAll(); }
     catch (e) {
-      if (cfg.demo || eigeneQuelle() || !cfg.base || baseUrl() === STANDARD_API) throw e;
-      data = await apiGetAll(STANDARD_API); cfg.base = ''; saveCfg();     // Rückfall auf feste Adresse
+      throw e;
     }
     setConn(cfg.demo ? 'demo' : 'ok', cfg.demo ? 'Demo' : 'verbunden');
     render();
@@ -1155,8 +1145,8 @@ document.addEventListener('click', async e => {
     zeige('main');
   }
   else if (act === 'saveCfg') {
-    cfg = { ...cfg, base: $('#cBase').value.trim().replace(/\/+$/, ''), prefix: $('#cPrefix').value.trim() || defCfg.prefix, webPass: $('#cWebPass').value,
-      user: $('#cUser').value.trim(), pass: $('#cPass').value, interval: Math.min(60, Math.max(1, Number($('#cInt').value) || 3)), demo: false };
+    cfg = { ...cfg, webPass: $('#cWebPass').value, interval: Math.min(60, Math.max(1, Number($('#cInt').value) || 3)), demo: false };
+    saAuthGeholt = false;
     saveCfg(); data = null; KONFIG = null; KONFIG_TXT = ''; if (demo) { demo.stopp(); demo = null; }
     zeige('main'); toast('Gespeichert'); restart();
   }
@@ -1175,13 +1165,13 @@ $('#openSettings').addEventListener('click', async () => {
   if (data && recRad && laeuft(recRad)) recRad = RAEDER.find(r => !laeuft(r)) || recRad; bauRecBikes(); zeige('settings');
 });
 
-$('#cBase').value = cfg.base; $('#cBase').placeholder = STANDARD_API; $('#cBaseHint').textContent = `Leer lassen = ${STANDARD_API}`;
-$('#cInt').value = cfg.interval; $('#cUser').value = cfg.user; $('#cPass').value = cfg.pass; $('#cPrefix').value = cfg.prefix; $('#cWebPass').value = cfg.webPass || '';
-// Anzeige der Datenquelle
-$('#fWebPass').hidden = !(SERVER && SERVER.quelle === 'eigen');
+$('#cInt').value = cfg.interval; $('#cWebPass').value = cfg.webPass || '';
+// Anzeige der Datenquelle (eingestellt in ioBroker: Instanzen → supercharge → Reiter „App“)
+$('#fWebPass').hidden = !(SERVER && SERVER.passwort);
 $('#cQuelle').innerHTML = SERVER && SERVER.quelle === 'eigen'
-  ? 'Daten kommen direkt vom <strong>Supercharge-Webserver</strong>. Die simple-api-Felder unten nur ausfüllen, wenn die App ausnahmsweise über simple-api laufen soll.'
-  : `Daten kommen über <strong>simple-api</strong> (${esc(STANDARD_API)}${SERVER ? ', in ioBroker eingestellt' : ''}).`;
+  ? 'Daten kommen direkt vom <strong>Supercharge-Webserver</strong>.'
+  : `Daten kommen über <strong>simple-api</strong> (${esc(STANDARD_API)}).`;
+$('#cQuelle').innerHTML += ' Datenquelle und simple-api werden in ioBroker eingestellt: <strong>Instanzen → supercharge → Reiter „App“</strong>.';
 // Demo-Modus gibt es ab 1.0 nicht mehr – ein früher gespeicherter Demo-Zustand wird beendet
 if (cfg.demo) { cfg.demo = false; saveCfg(); }
 $('#appVersion').textContent = `App-Version ${APP_VERSION}`;

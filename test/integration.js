@@ -87,6 +87,12 @@ tests.integration(path.join(__dirname, '..'), {
                 assert.strictEqual((await harness.states.getStateAsync('0_userdata.0.plug1.Switch')).val, true);
                 assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.Laeuft')).val, true);
                 assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.Start')).val, false);
+                // während des Ladens ist das Ziel gesperrt
+                const vorher = (await harness.states.getStateAsync('supercharge.0.rad1.ZielSOC')).val;
+                await harness.states.setStateAsync('supercharge.0.rad1.ZielSOC', { val: vorher === 60 ? 80 : 60, ack: false });
+                await warte(600);
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.ZielSOC')).val, vorher, 'Ziel darf sich beim Laden nicht ändern');
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.Laeuft')).val, true);
                 await harness.states.setStateAsync('supercharge.0.rad1.Abbruch', { val: true, ack: false });
                 await warte(1500);
                 assert.strictEqual((await harness.states.getStateAsync('0_userdata.0.plug1.Switch')).val, false);

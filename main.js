@@ -10,6 +10,7 @@ const { webserver } = require('./lib/webserver');
 
 const MAX_RAEDER = 4;
 const SCHALT_SPERRE_MS = 20000;
+const GESPERRT_BEIM_LADEN = ['ZielSOC', 'FertigBis', 'Modus'];   // je Rad, solange ein Vorgang läuft (auch Pause)
 const GESPERRT_BEI_AUFZ = ['ZielSOC', 'FertigBis', 'AufzArt', 'StartSOCAufz', 'Kurve', 'KurveWinter', 'Modus'];   // je Rad, solange es aufzeichnet   // so lange nach eigenem Schalten abweichende Rückmeldungen ignorieren
 const FARBEN = ['blau', 'orange', 'gruen', 'lila'];
 const WOCHENTAGE = ['backupSo', 'backupMo', 'backupDi', 'backupMi', 'backupDo', 'backupFr', 'backupSa']; // Index = Date.getDay()
@@ -263,7 +264,7 @@ class Supercharge extends utils.Adapter {
         const [radId, k] = key.split('.');
         if (!this.raeder.some(r => r.id === radId) || !DP_RAD[k]) return 'Unbekannter Datenpunkt';
         if (DP_RAD[k].write === false) return 'Nur lesbar';
-        if (this.befehl(key, value) === false) return 'Während der Aufzeichnung gesperrt';
+        if (this.befehl(key, value) === false) return 'Während des Ladevorgangs gesperrt';
         return true;
     }
 
@@ -312,8 +313,8 @@ class Supercharge extends utils.Adapter {
         if (!typ) return;
         const d = rad && DP_RAD[key];
         if (d && d.write === false) { this.set(rel, this.cache.get(rel)); return; }   // nur lesbar: alten Wert behalten
-        if (rad && GESPERRT_BEI_AUFZ.includes(key) && rad.zeichnetAuf()) {             // während einer Aufzeichnung gesperrt
-            this.log.info(`${rad.name}: ${key} kann während der Aufzeichnung nicht geändert werden`);
+        if (rad && ((GESPERRT_BEI_AUFZ.includes(key) && rad.zeichnetAuf()) || (GESPERRT_BEIM_LADEN.includes(key) && rad.laeuft()))) {
+            this.log.info(`${rad.name}: ${key} kann während ${rad.zeichnetAuf() ? 'der Aufzeichnung' : 'des Ladevorgangs'} nicht geändert werden`);
             this.set(rel, this.cache.get(rel));
             return false;
         }

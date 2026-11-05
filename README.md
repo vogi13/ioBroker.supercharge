@@ -107,6 +107,9 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ## Changelog
 
+### 1.0.4 (2026-11-05)
+- Ladeziel und Fertig-Uhrzeit sind während eines Ladevorgangs gesperrt (auch in der Pause): in der App ausgeblendet bzw. Regler und Knöpfe in den Details deaktiviert, im Adapter abgewiesen
+
 ### 1.0.3 (2026-11-01)
 - simple-api-Adresse, -Benutzer und -Passwort werden nur noch in den Instanzeinstellungen (Reiter „App“) festgelegt; die App zeigt dafür keine Felder mehr
 

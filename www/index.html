@@ -208,6 +208,7 @@ body.einstellungen .viewseg{display:none !important}
 .mehr{margin-top:10px;border:0;background:var(--soft);color:var(--ink);min-height:40px;padding:0 14px;border-radius:12px;font-weight:700;cursor:pointer;width:100%}
 .aufzinfo{display:flex;flex-direction:column;gap:6px;background:var(--danger-soft);color:var(--ink);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.4}
 .aufzinfo > strong:first-child{color:var(--danger);font-size:15px}
+.gesperrt #dZiel, .gesperrt #dPresets{opacity:.45;pointer-events:none}
 .leer{padding:28px 18px;text-align:center;color:var(--muted);line-height:1.5}
 .leer strong{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
 
@@ -283,6 +284,7 @@ body.einstellungen .viewseg{display:none !important}
             <button class="chip" data-act="ziel" data-v="80" data-z="1">Alltag 80 %</button>
             <button class="chip" data-act="ziel" data-v="100" data-z="2">Tour 100 %</button>
           </div>
+          <div class="hint" id="dZielGesperrt" hidden>Während des Ladens lässt sich das Ziel nicht ändern. Zum Ändern zuerst stoppen.</div>
           </div>
           <button class="btn ghost" id="dVoll" data-act="jetztvoll" hidden>Jetzt voll laden</button>
           <button class="btn" id="dBtn" style="margin-top:6px">–</button>
@@ -367,7 +369,7 @@ body.einstellungen .viewseg{display:none !important}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -837,7 +839,7 @@ function updateKarte(r) {
     const rest = R(r, 'RestMinuten') == null ? NaN : Number(R(r, 'RestMinuten')); f('etaK').textContent = 'Fertig in ca.';
     f('eta').innerHTML = isNaN(rest) || rest < 0 ? 'wird berechnet …' : `${hm(rest)} <small>· ${uhr(rest)}</small>`;
   }
-  c.querySelector('.schips').hidden = aufz(r);   // während der Aufzeichnung kein Ladeziel
+  c.querySelector('.schips').hidden = l;   // während eines Ladevorgangs (auch Pause/Aufzeichnung) kein Ladeziel wählbar
   c.querySelectorAll('.chip').forEach(b => {
     const a = Number(b.dataset.v) === ziel; b.classList.toggle('active', a);
     b.style.borderColor = a ? farbe(r) : ''; b.style.background = a ? soft(r) : ''; b.style.color = a ? ink(r) : '';
@@ -966,6 +968,9 @@ function renderDetail() {
   });
   const az = aufz(r);
   $('#dZielBox').hidden = az; $('#dAufz').hidden = !az;
+  // während eines Ladevorgangs: Ziel nur anzeigen, nicht ändern
+  $('#dZiel').disabled = l; $$('#dPresets .chip').forEach(c => { c.disabled = l; });
+  $('#dZielBox').classList.toggle('gesperrt', l); $('#dZielGesperrt').hidden = !l;
   if (az) $('#dAufz').innerHTML = aufzInfoHtml(r);
   const b = $('#dBtn');
   if (l) { b.className = 'btn stop'; b.textContent = az ? 'Aufzeichnung abbrechen' : 'Laden stoppen'; b.dataset.act = 'stop'; b.style.background = ''; b.style.color = ''; b.disabled = false; }
@@ -1124,6 +1129,7 @@ document.addEventListener('click', async e => {
   }
   else if (act === 'ziel') {
     const rad = r || detailRad, v = t.dataset.v;
+    if (laeuft(rad)) { toast('Während des Ladens lässt sich das Ziel nicht ändern'); render(); return; }
     if (!r) { $('#dZiel').value = v; $('#dZielVal').textContent = `${v} %`; }
     send(`${rad}.ZielSOC`, v, `Ziel für ${NAME(rad)}: ${v} %`); hold(`${rad}.ZielSOC`);
     if (data) { data[`${rad}.ZielSOC`] = Number(v); render(); }
@@ -1155,8 +1161,8 @@ document.addEventListener('input', e => {
   const t = e.target.closest('[data-f="fb"]'); if (!t) return;
   if (/^\d{1,2}:\d{2}$/.test(t.value)) { zeitMerken(t.dataset.rad, t.value); render(); }
 });
-$('#dZiel').addEventListener('input', () => { hold(`${detailRad}.ZielSOC`); $('#dZielVal').textContent = `${$('#dZiel').value} %`; });
-$('#dZiel').addEventListener('change', () => send(`${detailRad}.ZielSOC`, $('#dZiel').value, `Ziel für ${NAME(detailRad)}: ${$('#dZiel').value} %`));
+$('#dZiel').addEventListener('input', () => { if (laeuft(detailRad)) { render(); return; } hold(`${detailRad}.ZielSOC`); $('#dZielVal').textContent = `${$('#dZiel').value} %`; });
+$('#dZiel').addEventListener('change', () => laeuft(detailRad) ? render() : send(`${detailRad}.ZielSOC`, $('#dZiel').value, `Ziel für ${NAME(detailRad)}: ${$('#dZiel').value} %`));
 $('#recSoc').addEventListener('input', () => { hold(`${recRad}.StartSOCAufz`); $('#recVal').textContent = `${$('#recSoc').value} %`; });
 $('#recSoc').addEventListener('change', () => send(`${recRad}.StartSOCAufz`, $('#recSoc').value));
 $('#openSettings').addEventListener('click', async () => {

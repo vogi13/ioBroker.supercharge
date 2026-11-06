@@ -107,6 +107,9 @@ Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('s
 
 ## Changelog
 
+### 1.0.5 (2026-11-06)
+- App: Die inaktive Ladekurve in den Details ist jetzt eine dünne durchgezogene Linie, damit sie nicht mit den gestrichelten Markierungen „jetzt“ und „Ziel“ verwechselt wird
+
 ### 1.0.4 (2026-11-05)
 - Ladeziel und Fertig-Uhrzeit sind während eines Ladevorgangs gesperrt (auch in der Pause): in der App ausgeblendet bzw. Regler und Knöpfe in den Details deaktiviert, im Adapter abgewiesen
 

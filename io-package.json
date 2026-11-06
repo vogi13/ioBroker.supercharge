@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "news": {
+      "1.0.5": {
+        "en": "App: inactive charge curve shown as thin solid line",
+        "de": "App: inaktive Ladekurve als dünne durchgezogene Linie (nicht mehr gestrichelt)"
+      },
       "1.0.4": {
         "en": "Charge target and full-by time can no longer be changed while charging (app and adapter)",
         "de": "Ladeziel und Fertig-Uhrzeit sind während eines Ladevorgangs gesperrt (App und Adapter)"

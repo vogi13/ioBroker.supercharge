@@ -369,7 +369,7 @@ body.einstellungen .viewseg{display:none !important}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '1.0.4';
+const APP_VERSION = '1.0.5';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -901,7 +901,7 @@ function svgChart(box, { series, marks = [], xLabel, yLabel, xMin, xMax }) {
     if (!s.pts.length) continue;
     const d = s.pts.map((p, i) => `${i ? 'L' : 'M'}${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join('');
     if (s.area) g += `<path d="${d}L${sx(s.pts[s.pts.length - 1][0]).toFixed(1)},${sy(0)}L${sx(s.pts[0][0]).toFixed(1)},${sy(0)}Z" style="fill:${s.color}" opacity=".12"/>`;
-    g += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="${s.dash ? 2 : 2.4}"${s.dash ? ' stroke-dasharray="5 4"' : ''} stroke-linejoin="round" stroke-linecap="round"/>`;
+    g += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="${s.thin ? 1.4 : s.dash ? 2 : 2.4}"${s.dash ? ' stroke-dasharray="5 4"' : ''}${s.thin ? ' stroke-opacity="0.8"' : ''} stroke-linejoin="round" stroke-linecap="round"/>`;
   }
   for (const m of marks) { const x = sx(m.x); g += `<line x1="${x}" x2="${x}" y1="${T}" y2="${H - B}" style="stroke:${m.color}" stroke-width="1.6" stroke-dasharray="5 4"/><text x="${x + 5}" y="${T - 8}" style="fill:${m.color};font-weight:700">${esc(m.label)}</text>`; }
   box.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(yLabel)} über ${esc(xLabel)}">${g}</svg>`;
@@ -992,7 +992,7 @@ function renderDetail() {
     const soc = Number(R(r, 'SOC')) || 0; if (l && m === 'laden' && soc > 0) marks.push({ x: soc, color: 'var(--ink)', label: `jetzt ${soc} %` });
     const art = aktivArt(r), andere = art === 'winter' ? 'sommer' : 'winter', k2 = kurveArt(r, andere);
     const series = [{ pts: k.map(e => [e.soc, e.p]), color: farbe(r), area: true }];
-    if (k2.length) series.unshift({ pts: k2.map(e => [e.soc, e.p]), color: 'var(--muted)', dash: true });
+    if (k2.length) series.unshift({ pts: k2.map(e => [e.soc, e.p]), color: 'var(--muted)', thin: true });   // inaktive Kurve: dünn, durchgezogen
     svgChart(box, { series, marks, xLabel: 'SOC %', yLabel: 'W', xMin: 0, xMax: 100 });
     const zeile = (a, kk, aktiv) => { const i = kInfo(r, a), pkk = peakOf(kk);
       return `<span><i style="background:${aktiv ? farbe(r) : 'var(--muted)'}${aktiv ? '' : ';opacity:.6'}"></i><strong>${ARTNAME[a]}</strong>${aktiv && k2.length ? ' · aktiv' : ''}${i && i.datum ? ` · ${esc(kurzDatum(i.datum).slice(0, 6))}` : ''}${i && i.temp != null ? ` bei ${fmt(i.temp, 0)} °C` : ''} · max. ${fmt(pkk.p)} W bei ${pkk.soc} %</span>`; };

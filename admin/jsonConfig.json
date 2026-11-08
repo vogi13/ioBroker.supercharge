@@ -8,7 +8,7 @@
       "items": {
         "introRaeder": {
           "type": "staticText",
-          "text": "1 bis 4 Räder. Jedes Rad braucht eine schaltbare Steckdose mit Leistungsmessung (z. B. Shelly Plug S, 1PM, 2PM). Die Nummer bestimmt den Ordner (rad1 … rad4) – wird ein Rad umbenannt, bleiben Ladekurve und Statistik erhalten.",
+          "text": "1 bis 4 Räder. Jedes Rad braucht eine schaltbare Steckdose mit Leistungsmessung (z. B. Shelly Plug S, 1PM, 2PM). Die Nummer bestimmt den Ordner (rad1 … rad4) – wird ein Rad umbenannt, bleiben Ladekurve und Statistik erhalten. „Akkustand beim Start abfragen“: Beim Tippen auf „laden“ fragt die App optional nach dem Akkustand laut Display – damit wird der Ladestand über die geladene Energie berechnet und das Ziel genauer getroffen.",
           "sm": 12
         },
         "raeder": {
@@ -23,7 +23,7 @@
               "type": "select",
               "attr": "slot",
               "title": "Nr.",
-              "width": "8%",
+              "width": "7%",
               "default": "1",
               "options": [
                 {
@@ -48,14 +48,14 @@
               "type": "text",
               "attr": "name",
               "title": "Name",
-              "width": "16%",
+              "width": "14%",
               "default": ""
             },
             {
               "type": "select",
               "attr": "farbe",
               "title": "Farbe",
-              "width": "12%",
+              "width": "11%",
               "default": "blau",
               "options": [
                 {
@@ -80,15 +80,22 @@
               "type": "objectId",
               "attr": "schalter",
               "title": "Schalter (Ein/Aus)",
-              "width": "32%",
+              "width": "27%",
               "default": ""
             },
             {
               "type": "objectId",
               "attr": "leistung",
               "title": "Leistung (W)",
-              "width": "32%",
+              "width": "27%",
               "default": ""
+            },
+            {
+              "type": "checkbox",
+              "attr": "startAbfrage",
+              "title": "Akkustand beim Start abfragen",
+              "width": "14%",
+              "default": true
             }
           ]
         }

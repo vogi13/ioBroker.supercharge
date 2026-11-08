@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "supercharge",
-    "version": "1.0.5",
+    "version": "1.1.0",
     "news": {
+      "1.1.0": {
+        "en": "Optional battery level from the display when starting (per bike in the instance settings); state of charge is then counted from the charged energy",
+        "de": "Optionale Abfrage des Akkustands laut Display beim Start (pro Rad in den Instanzeinstellungen); der Ladestand wird dann über die geladene Energie berechnet"
+      },
       "1.0.5": {
         "en": "App: inactive charge curve shown as thin solid line",
         "de": "App: inaktive Ladekurve als dünne durchgezogene Linie (nicht mehr gestrichelt)"

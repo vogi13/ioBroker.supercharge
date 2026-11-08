@@ -144,5 +144,29 @@ describe('Supercharge Ladelogik (Simulation)', function () {
         });
     });
 
+    describe('Akkustand laut Display beim Start', () => {
+        // flache steigende Flanke wie bei Andi: 1 W Abweichung ≈ 5 % Ladestand
+        const fall = (rad) => lauf({ start: t(19, 17, 0), bis: t(19, 23, 0),
+            raeder: [{ id: 'rad1', lader: 'flach', akku: 40, ziel: 80, ...rad }],
+            aktion: [[t(19, 17, 0), start('rad1')]] });
+        it('N: Ladegerät 1,5 W unter der Kurve – ohne Angabe deutlich über dem Ziel, mit Angabe nahe 80 %', () => {
+            const ohne = fall({ offset: -1.5 }), mit = fall({ offset: -1.5, display: 40 });
+            assert.ok(mit.akku.rad1 >= 77 && mit.akku.rad1 <= 83, `mit Angabe ${mit.akku.rad1.toFixed(1)} %` + zeig(mit));
+            assert.ok(Math.abs(mit.akku.rad1 - 80) < Math.abs(ohne.akku.rad1 - 80), `mit ${mit.akku.rad1.toFixed(1)} / ohne ${ohne.akku.rad1.toFixed(1)}`);
+            assert.strictEqual(mit.statistik[0].startSOC, 40); assert.strictEqual(mit.statistik[0].startManuell, true);
+            assert.strictEqual(mit.states['rad1.StartSOCManuell'], -1, 'Angabe gilt nur für einen Start');
+        });
+        it('O: Ladegerät 1,5 W über der Kurve – mit Angabe nahe 80 %', () => {
+            const mit = fall({ offset: 1.5, display: 40 });
+            assert.ok(mit.akku.rad1 >= 77 && mit.akku.rad1 <= 83, `mit Angabe ${mit.akku.rad1.toFixed(1)} %` + zeig(mit));
+        });
+        it('P: 100 % mit Angabe – lädt bis das Ladegerät fertig ist', () => {
+            const W = lauf({ start: t(19, 17, 0), bis: t(20, 2, 0),
+                raeder: [{ id: 'rad1', lader: 'flach', akku: 40, ziel: 100, display: 40 }], aktion: [[t(19, 17, 0), start('rad1')]] });
+            assert.ok(W.ereignisse.some(e => /Ladegerät fertig/.test(e)), zeig(W));
+            assert.ok(W.akku.rad1 >= 99);
+        });
+    });
+
     after(() => { void hm; });
 });

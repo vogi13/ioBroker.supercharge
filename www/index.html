@@ -362,6 +362,13 @@ body.einstellungen .viewseg{display:none !important}
 <div class="toast" id="toast" role="status"></div>
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTxt">
   <div class="box"><p id="modalTxt"></p>
+    <div id="modalZahl" hidden style="margin:-4px 0 16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <input id="modalNum" type="number" inputmode="numeric" min="0" max="100" step="1" placeholder="z. B. 40" aria-label="Akkustand laut Display in Prozent" style="flex:1;min-height:52px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-size:24px;font-weight:800">
+        <span style="font-size:22px;font-weight:800">%</span>
+      </div>
+      <div class="hint" id="modalHint" style="margin-top:8px">Leer lassen = Supercharge schätzt den Akkustand selbst.</div>
+    </div>
     <div class="acts"><button class="btn ghost" id="modalNo">Nein</button><button class="btn dark" id="modalYes">Ja</button></div>
   </div>
 </div>
@@ -369,7 +376,7 @@ body.einstellungen .viewseg{display:none !important}
 <script>
 (() => {
 'use strict';
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.1.0';
 console.log('Supercharge App-Version', APP_VERSION);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -422,7 +429,7 @@ async function saAuthHolen() {
 const saveCfg = () => { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {} };
 
 const GEMEINSAM = ['info.konfig', 'Statistik', 'Temperatur'];
-const PRO_RAD = ['KurveWinter', 'KurvenInfo', 'AufzArt', 'AktiveKurve', 'FertigBis', 'Phase', 'Plan', 'Hinweis', 'Kurve', 'StartSOCAufz', 'Modus', 'ZielSOC', 'SOC', 'StartSOC', 'Status', 'Flanke', 'Leistung', 'Laeuft', 'Verlauf', 'RestMinuten'];
+const PRO_RAD = ['StartSOCManuell', 'KurveWinter', 'KurvenInfo', 'AufzArt', 'AktiveKurve', 'FertigBis', 'Phase', 'Plan', 'Hinweis', 'Kurve', 'StartSOCAufz', 'Modus', 'ZielSOC', 'SOC', 'StartSOC', 'Status', 'Flanke', 'Leistung', 'Laeuft', 'Verlauf', 'RestMinuten'];
 const keysAlle = () => [...GEMEINSAM, ...RAEDER.flatMap(r => PRO_RAD.map(k => `${r}.${k}`))];
 const pre = () => cfg.prefix.replace(/\.$/, '');
 const fullId = k => `${pre()}.${k}`;
@@ -667,6 +674,26 @@ function ask(text, yesLabel = 'Ja', danger = false) {
     m.classList.add('show'); yes.focus();
   });
 }
+/** Start-Dialog: Akkustand laut Display (optional). Ergebnis: null = abgebrochen, '' = ohne Angabe, sonst Zahl */
+function askStart(r) {
+  return new Promise(resolve => {
+    const m = $('#modal'), yes = $('#modalYes'), no = $('#modalNo'), box = $('#modalZahl'), inp = $('#modalNum');
+    $('#modalTxt').textContent = `Akkustand von ${NAME(r)} laut Display (optional)`;
+    yes.textContent = `${NAME(r)} laden`; yes.className = 'btn dark'; no.textContent = 'Abbrechen';
+    box.hidden = false; inp.value = ''; $('#modalHint').textContent = 'Leer lassen = Supercharge schätzt den Akkustand selbst.';
+    const done = v => { m.classList.remove('show'); box.hidden = true; no.textContent = 'Nein'; yes.onclick = no.onclick = m.onclick = inp.onkeydown = null; resolve(v); };
+    const ok = () => {
+      const t = inp.value.trim(); if (t === '') return done('');
+      const v = Number(t.replace(',', '.'));
+      if (!Number.isFinite(v) || v < 0 || v > 100) { $('#modalHint').textContent = 'Bitte einen Wert von 0 bis 100 eingeben – oder das Feld leer lassen.'; inp.focus(); return; }
+      done(Math.round(v));
+    };
+    yes.onclick = ok; no.onclick = () => done(null); m.onclick = e => { if (e.target === m) done(null); };
+    inp.onkeydown = e => { if (e.key === 'Enter') ok(); };
+    m.classList.add('show'); setTimeout(() => inp.focus(), 50);
+  });
+}
+const startAbfrage = r => { const x = KONFIG && KONFIG.raeder.find(k => k.id === r); return !!x && x.startAbfrage !== false; };
 const setConn = (c, t) => { $('#connDot').className = 'dot ' + c; $('#connTxt').textContent = t; };
 
 // ---------------- Ring ----------------
@@ -1117,6 +1144,13 @@ document.addEventListener('click', async e => {
   else if (act === 'tab') { tab = t.dataset.tab; render(); }
   else if (act === 'start') {
     const ziel = Number(R(r, 'ZielSOC')) || 80, mitZeit = ziel >= 100 && modus100[r] === 'zeit';
+    let akku = '';
+    if (startAbfrage(r)) {
+      akku = await askStart(r);
+      if (akku === null) return;
+      if (akku !== '' && ziel < 100 && akku >= ziel) { toast(`${NAME(r)} ist mit ${akku} % schon am Ziel (${ziel} %) – nichts zu laden`); return; }
+    }
+    try { await apiSet(`${r}.StartSOCManuell`, akku === '' ? -1 : akku); } catch (e) {}
     try { await apiSet(`${r}.FertigBis`, mitZeit ? zeit100[r] : ''); } catch (e) {}
     starte(r, 'laden', mitZeit ? `${NAME(r)} lädt – voll bis ${zeit100[r]}` : `${NAME(r)} lädt`);
   }

@@ -8,6 +8,7 @@ const warte = ms => new Promise(r => setTimeout(r, ms));
 
 tests.integration(path.join(__dirname, '..'), {
     allowedExitCodes: [11],
+    controllerVersion: 'latest',
     defineAdditionalTests({ suite }) {
         suite('Supercharge mit zwei Rädern', getHarness => {
             let harness;
@@ -51,6 +52,7 @@ tests.integration(path.join(__dirname, '..'), {
             it('veröffentlicht die Konfiguration für die App', async () => {
                 const k = JSON.parse((await harness.states.getStateAsync('supercharge.0.info.konfig')).val);
                 assert.deepStrictEqual(k.raeder.map(r => r.id), ['rad1', 'rad3']);
+                assert.ok(k.raeder.every(r => r.startAbfrage === true), 'Abfrage ist standardmäßig an');
                 assert.strictEqual(k.backup.aktiv, true);
                 assert.strictEqual(k.backup.start, '03:15');
                 assert.strictEqual(k.backup.dauer, 20);
@@ -191,6 +193,19 @@ tests.integration(path.join(__dirname, '..'), {
                 assert.ok(/manuell abgebrochen/.test((await harness.states.getStateAsync('supercharge.0.rad1.Status')).val));
                 const stat = JSON.parse((await harness.states.getStateAsync('supercharge.0.Statistik')).val);
                 assert.ok(stat.every(e => e.minuten > 0), 'Vorgänge ohne Minute dürfen nicht in die Statistik');
+            });
+
+            it('Start mit Akkustand laut Display', async function () {
+                this.timeout(15000);
+                await harness.states.setStateAsync('supercharge.0.rad1.Modus', { val: 'laden', ack: false });
+                await harness.states.setStateAsync('supercharge.0.rad1.StartSOCManuell', { val: 40, ack: false });
+                await harness.states.setStateAsync('supercharge.0.rad1.Start', { val: true, ack: false });
+                await warte(1200);
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.SOC')).val, 40);
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.StartSOC')).val, 40);
+                assert.strictEqual((await harness.states.getStateAsync('supercharge.0.rad1.StartSOCManuell')).val, -1);
+                assert.ok(/Start 40 % laut Display/.test((await harness.states.getStateAsync('supercharge.0.rad1.Status')).val));
+                await harness.states.setStateAsync('supercharge.0.rad1.Abbruch', { val: true, ack: false }); await warte(1000);
             });
 
             it('Rad ohne Ladekurve startet nicht', async () => {

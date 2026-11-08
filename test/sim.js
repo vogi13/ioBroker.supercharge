@@ -20,6 +20,8 @@ const LADER = {
     schnell: soc => soc >= 100 ? 0.8 : soc < 80 ? 165 + (soc - 10) * 0.3 : 186 * Math.exp(-(soc - 80) / 8),
     langsam: soc => soc >= 100 ? 0.6 : soc < 85 ? 78 + (soc - 10) * 0.12 : 87 * Math.exp(-(soc - 85) / 5),
     // schnelles Ladegerät bei Kälte: weniger Leistung, Abfall beginnt früher
+    // wie Andi: sehr flache steigende Flanke (≈ 70 → 90 W), Abfall ab 93 %
+    flach: soc => soc >= 100 ? 0.6 : soc < 93 ? 70 + soc * 0.215 : 90 * Math.exp(-(soc - 93) / 2.5),
     kalt: soc => soc >= 100 ? 0.8 : soc < 74 ? 140 + (soc - 10) * 0.4 : 165.6 * Math.exp(-(soc - 74) / 9),
 };
 function kurve(lader) {
@@ -47,13 +49,14 @@ function lauf(p) {
             W.akku[r.id] = r.akku; W.an[r.id] = false; W.angesteckt[r.id] = r.angesteckt !== false;
             Object.assign(W.states, {
                 [`${r.id}.Kurve`]: r.sommer === null ? '[]' : kurve(LADER[r.sommer || r.lader]),
-                [`${r.id}.KurveWinter`]: r.winter ? kurve(LADER[r.winter]) : '[]', [`${r.id}.KurvenInfo`]: '{}', [`${r.id}.AufzArt`]: r.aufzArt || 'sommer',
+                [`${r.id}.KurveWinter`]: r.winter ? kurve(LADER[r.winter]) : '[]', [`${r.id}.KurvenInfo`]: '{}', [`${r.id}.AufzArt`]: r.aufzArt || 'sommer', [`${r.id}.StartSOCManuell`]: r.display ?? -1,
                 [`${r.id}.ZielSOC`]: r.ziel, [`${r.id}.FertigBis`]: r.fertigBis || '',
                 [`${r.id}.Modus`]: r.modus || 'laden', [`${r.id}.StartSOCAufz`]: 10, [`${r.id}.SOC`]: 0, [`${r.id}.Verlauf`]: '[]', [`${r.id}.Sitzung`]: '',
             });
         }
         W.states.Statistik = '[]';
-        const leistung = id => (W.an[id] && W.angesteckt[id] ? LADER[p.raeder.find(r => r.id === id).lader](W.akku[id]) : 0);
+        // offset: Ladegerät nimmt heute etwas mehr/weniger Leistung auf als bei der Aufzeichnung (Temperatur, Messrauschen)
+        const leistung = id => { const r = p.raeder.find(x => x.id === id), P = LADER[r.lader](W.akku[id]); return W.an[id] && W.angesteckt[id] ? (P > 1 ? P + (r.offset || 0) : P) : 0; };
 
         function instanz() {
             const intervals = new Map(), timeouts = new Map(); let nid = 0;

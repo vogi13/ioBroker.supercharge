@@ -98,6 +98,7 @@ schreiben (nur Ziel, Fertig-Uhrzeit, Modus, Startwert, Hinweis und die Knöpfe) 
 | `radN.Start`, `radN.Abbruch`, `radN.JetztVoll` | Knöpfe |
 | `radN.SOC`, `radN.Status`, `radN.Laeuft`, `radN.Phase`, `radN.RestMinuten`, `radN.Leistung` | Zustand |
 | `radN.Kurve`, `radN.KurveWinter`, `radN.KurvenInfo` | Sommer- und Winterkurve, Angaben (Datum, Startwert, Temperatur) |
+| `radN.StartSOCManuell` | Akkustand laut Display für den nächsten Start (-1 = keine Angabe) |
 | `radN.AufzArt`, `radN.StartSOCAufz` | nächste Aufzeichnung als `sommer`/`winter`, Startwert |
 | `radN.AktiveKurve` | Kurve des aktuellen/letzten Vorgangs |
 | `Temperatur` | Temperatur vom eingestellten Sensor (leer ohne gültigen Wert) |
@@ -106,6 +107,9 @@ schreiben (nur Ziel, Fertig-Uhrzeit, Modus, Startwert, Hinweis und die Knöpfe) 
 Die Knöpfe lassen sich auch aus Skripten, Blockly oder VIS setzen (`setState('supercharge.0.rad1.Start', true)`).
 
 ## Changelog
+
+### 1.1.0 (2026-11-08)
+- Neu: Beim Tippen auf „laden“ fragt die App optional nach dem Akkustand laut Display. Mit Angabe berechnet Supercharge den Ladestand über die geladene Energie (Wh je Prozent aus der Ladekurve) – das Ziel wird auch bei sehr flacher Ladekurve genau getroffen. Pro Rad in den Instanzeinstellungen (Reiter „Räder“) ein- und ausschaltbar
 
 ### 1.0.5 (2026-11-06)
 - App: Die inaktive Ladekurve in den Details ist jetzt eine dünne durchgezogene Linie, damit sie nicht mit den gestrichelten Markierungen „jetzt“ und „Ziel“ verwechselt wird

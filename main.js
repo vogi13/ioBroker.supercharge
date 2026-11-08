@@ -10,7 +10,7 @@ const { webserver } = require('./lib/webserver');
 
 const MAX_RAEDER = 4;
 const SCHALT_SPERRE_MS = 20000;
-const GESPERRT_BEIM_LADEN = ['ZielSOC', 'FertigBis', 'Modus'];   // je Rad, solange ein Vorgang läuft (auch Pause)
+const GESPERRT_BEIM_LADEN = ['ZielSOC', 'FertigBis', 'Modus', 'StartSOCManuell'];   // je Rad, solange ein Vorgang läuft (auch Pause)
 const GESPERRT_BEI_AUFZ = ['ZielSOC', 'FertigBis', 'AufzArt', 'StartSOCAufz', 'Kurve', 'KurveWinter', 'Modus'];   // je Rad, solange es aufzeichnet   // so lange nach eigenem Schalten abweichende Rückmeldungen ignorieren
 const FARBEN = ['blau', 'orange', 'gruen', 'lila'];
 const WOCHENTAGE = ['backupSo', 'backupMo', 'backupDi', 'backupMi', 'backupDo', 'backupFr', 'backupSa']; // Index = Date.getDay()
@@ -50,7 +50,7 @@ class Supercharge extends utils.Adapter {
             if (!name || !z.schalter || !z.leistung) { this.log.warn(`Rad ${slot}: Name, Schalter und Leistung müssen ausgefüllt sein – übersprungen`); continue; }
             belegt.add(slot);
             out.push({ id: `rad${slot}`, slot, name, farbe: FARBEN.includes(z.farbe) ? z.farbe : FARBEN[slot - 1],
-                schalter: String(z.schalter).trim(), leistung: String(z.leistung).trim() });
+                schalter: String(z.schalter).trim(), leistung: String(z.leistung).trim(), startAbfrage: z.startAbfrage !== false });
         }
         return out.sort((a, b) => a.slot - b.slot);
     }
@@ -168,7 +168,7 @@ class Supercharge extends utils.Adapter {
 
         this.set('info.konfig', JSON.stringify({
             version: this.version || '',
-            raeder: raeder.map(r => ({ id: r.id, name: r.name, farbe: r.farbe })),
+            raeder: raeder.map(r => ({ id: r.id, name: r.name, farbe: r.farbe, startAbfrage: r.startAbfrage })),
             ziele: opt.ziele, park: opt.parkSoc, puffer: opt.pufferMin, minPause: opt.minPauseMin,
             backup: opt.backup,
             temp: { aktiv: !!this.temp.id, schwelle: opt.tempSchwelle },
